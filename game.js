@@ -13,6 +13,12 @@ export const Ball = Object.freeze({
 const BALL_NAMES = ["red_ball","pink_ball","blue_ball","yellow_ball","black_ball","purple_ball"];
 const STORAGE_KEY = "pokemon_splendor_save_v1";
 
+// 卡牌数据
+let cardLibrary = [];
+let cardPools = { all: [], 1: [], 2: [], 3: [], 4: [], 5: [] };
+let cardCursor = { all: 0, 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
+const cardsReady = loadCardLibrary();
+
 // ========== 2) DOM ==========
 const $ = (sel) => document.querySelector(sel);
 
@@ -57,6 +63,61 @@ let ui = {
   selectedReservedCard: null,     // {playerIndex, cardId}
 };
 
+async function loadCardLibrary(){
+  try{
+    const res = await fetch("cards.json");
+    const data = await res.json();
+    cardLibrary = data
+      .filter(c => Number(c.level) > 0 && c.name)
+      .map(normalizeCard);
+  }catch(err){
+    console.error("加载卡牌数据失败", err);
+    cardLibrary = [];
+  }
+
+  buildCardPools();
+}
+
+function normalizeCard(card, idx){
+  const src = card.src ? (card.src.endsWith(".jpg") ? card.src : `${card.src}.jpg`) : "";
+  return {
+    ...card,
+    src,
+    id: card.md5 || card.id || `card-${idx}`,
+    slotLevel: card.level > 0 ? card.level : 1,
+  };
+}
+
+function buildCardPools(){
+  cardPools.all = cardLibrary;
+  for (let lv=1; lv<=5; lv++){
+    cardPools[lv] = cardLibrary.filter(c => c.level === lv);
+    cardCursor[lv] = 0;
+  }
+  cardCursor.all = 0;
+}
+
+function drawCardForLevel(level){
+  const pool = cardPools[level].length ? cardPools[level] : cardPools.all;
+  if (!pool.length){
+    return makePlaceholderCard(`placeholder-${Math.random().toString(16).slice(2)}`, level, level);
+  }
+  const idx = cardCursor[level] % pool.length;
+  cardCursor[level] = (cardCursor[level] + 1) % pool.length;
+  const base = pool[idx];
+  return {
+    ...base,
+    slotLevel: level,
+    id: `${base.id}-${Date.now()}-${Math.random().toString(16).slice(2,6)}`,
+  };
+}
+
+function drawCards(level, count){
+  const arr = [];
+  for (let i=0;i<count;i++) arr.push(drawCardForLevel(level));
+  return arr;
+}
+
 function makeEmptyState(){
   return {
     version: 1,
@@ -88,7 +149,7 @@ function makeEmptyState(){
 }
 
 // ========== 4) 卡牌数据：占位生成 / 以后替换为真实 90 张 ==========
-function makePlaceholderCard(id, level){
+function makePlaceholderCard(id, level, slotLevel = level){
   // 成本：随机 1~3 个颜色，数量 1~4（只为可试玩）
   const colors = shuffle([0,1,2,3,4]).slice(0, randInt(1,3));
   const cost = colors.map(c => ({ ball_color: c, number: randInt(1,4) }));
@@ -100,23 +161,14 @@ function makePlaceholderCard(id, level){
     point: Math.max(0, level-1) + (Math.random() < 0.2 ? 1 : 0),
     evolution: { name:"", cost:{ ball_color:-1, number:-1 } },
     reward: { ball_color:-1, number:-1 },
-    cost
+    cost,
+    slotLevel
   };
 }
 
-function buildPlaceholderMarket(){
-  const slots = [];
-  for (let i=0;i<4;i++) slots.push(makePlaceholderCard(`L1-${i}-${Date.now()}`, 1));
-  for (let i=0;i<4;i++) slots.push(makePlaceholderCard(`L2-${i}-${Date.now()}`, 2));
-  for (let i=0;i<4;i++) slots.push(makePlaceholderCard(`L3-${i}-${Date.now()}`, 3));
-  // 你规则里有稀有/传说，这里也给 4+4 占位
-  for (let i=0;i<4;i++) slots.push(makePlaceholderCard(`R-${i}-${Date.now()}`, 4));
-  for (let i=0;i<4;i++) slots.push(makePlaceholderCard(`LEG-${i}-${Date.now()}`, 5));
-  return slots;
-}
-
 // ========== 5) 新游戏初始化 ==========
-function newGame(playerCount){
+async function newGame(playerCount){
+  await cardsReady;
   state = makeEmptyState();
 
   // token pool 按人数调整（按你规则）
@@ -140,8 +192,22 @@ function newGame(playerCount){
   state.turn = 1;
   state.perTurn.evolved = false;
 
-  // 展示区：占位
-  state.market.slots = buildPlaceholderMarket();
+  // 展示区：使用实际卡牌填满每个等级
+  const layout = [
+    { level: 1, count: 4 },
+    { level: 2, count: 4 },
+    { level: 3, count: 4 },
+    { level: 4, count: 1 },
+    { level: 5, count: 1 },
+  ];
+  state.market.slots = layout.flatMap(cfg => drawCards(cfg.level, cfg.count));
+
+  // 玩家区：直接给满展示效果
+  state.players.forEach((p, idx) => {
+    const displayLevel = layout[idx % layout.length].level;
+    p.hand = drawCards(displayLevel, 4);
+    p.reserved = drawCards(displayLevel, 3);
+  });
 
   clearSelections();
   renderAll();
@@ -291,7 +357,7 @@ function actionReserve(){
   p.reserved.push(card);
 
   // 补牌（占位：重新生成同等级一张）
-  state.market.slots[idx] = makePlaceholderCard(`${card.level}-${Math.random().toString(16).slice(2)}-${Date.now()}`, card.level);
+  state.market.slots[idx] = drawCardForLevel(card.slotLevel ?? card.level);
 
   // 拿 1 个大师球（紫）
   if (state.tokenPool[Ball.purple_ball] > 0){
@@ -341,7 +407,7 @@ function actionBuy(){
   p.hand.push(card);
 
   // 补牌（占位）
-  state.market.slots[idx] = makePlaceholderCard(`${card.level}-${Math.random().toString(16).slice(2)}-${Date.now()}`, card.level);
+  state.market.slots[idx] = drawCardForLevel(card.slotLevel ?? card.level);
 
   clearSelections();
   renderAll();
@@ -358,18 +424,18 @@ function actionEvolvePlaceholder(){
   toast("进化（占位）已标记：本回合不能再进化");
 }
 
-function actionReplaceOnePlaceholder(){
+function actionReplaceOne(){
   // 规则：弃掉展示区 1 张并补 1 张（作为回合完整行动）
   if (!ui.selectedMarketCardId) return toast("先点击展示区选择要替换的卡");
   const idx = state.market.slots.findIndex(c => c.id === ui.selectedMarketCardId);
   if (idx < 0) return toast("选择的卡不在展示区");
 
   const old = state.market.slots[idx];
-  state.market.slots[idx] = makePlaceholderCard(`${old.level}-${Math.random().toString(16).slice(2)}-${Date.now()}`, old.level);
+  state.market.slots[idx] = drawCardForLevel(old.slotLevel ?? old.level);
 
   clearSelections();
   renderAll();
-  toast("已替换展示区 1 张卡（占位）");
+  toast("已替换展示区 1 张卡");
 }
 
 function endTurn(){
@@ -454,6 +520,16 @@ function makeSavePayload(){
   };
 }
 
+function normalizeLoadedCard(card){
+  if (!card) return makePlaceholderCard(`loaded-${Math.random().toString(16).slice(2)}`, 1, 1);
+  const src = card.src ? (card.src.endsWith(".jpg") || card.src.endsWith(".svg") ? card.src : `${card.src}.jpg`) : (cardPools.all[0]?.src || "");
+  return {
+    ...card,
+    src,
+    slotLevel: card.slotLevel ?? card.level ?? 1,
+  };
+}
+
 function applySavePayload(payload){
   // 最小校验
   if (!payload || !Array.isArray(payload.players)) throw new Error("bad payload");
@@ -469,14 +545,15 @@ function applySavePayload(payload){
 
   state.tokenPool = payload.tokenPool ?? [7,7,7,7,7,5];
   state.market = payload.market ?? { slots: [] };
+  state.market.slots = Array.isArray(state.market.slots) ? state.market.slots.map(normalizeLoadedCard) : [];
 
   // 玩家（必须包含你要的字段）
   state.players = payload.players.map((p, i) => ({
     id: `P${i}`,
     name: typeof p.name === "string" ? p.name : (i===0 ? "玩家" : `机器人${i}`),
     isStarter: !!p.isStarter,
-    hand: Array.isArray(p.hand) ? p.hand : [],
-    reserved: Array.isArray(p.reserved) ? p.reserved : [],
+    hand: Array.isArray(p.hand) ? p.hand.map(normalizeLoadedCard) : [],
+    reserved: Array.isArray(p.reserved) ? p.reserved.map(normalizeLoadedCard) : [],
     tokens: Array.isArray(p.tokens) && p.tokens.length===6 ? p.tokens : [0,0,0,0,0,0],
   }));
 
@@ -530,6 +607,7 @@ function renderBadges(){
 }
 
 function renderTokenPool(){
+  if (!el.tokenPool) return;
   el.tokenPool.innerHTML = "";
   for (let c=0;c<6;c++){
     const btn = document.createElement("div");
@@ -537,19 +615,12 @@ function renderTokenPool(){
     btn.dataset.color = String(c);
     btn.title = BALL_NAMES[c];
 
-    const label = document.createElement("div");
-    label.textContent = BALL_NAMES[c].replace("_ball","").toUpperCase();
-    label.style.fontWeight = "900";
-    label.style.fontSize = "11px";
-    btn.appendChild(label);
-
     const count = document.createElement("div");
     count.className = "count";
     count.textContent = String(state.tokenPool[c]);
     btn.appendChild(count);
 
     btn.addEventListener("click", () => {
-      // toggle selection
       if (ui.selectedTokenColors.has(c)) ui.selectedTokenColors.delete(c);
       else ui.selectedTokenColors.add(c);
       renderTokenPool();
@@ -560,50 +631,38 @@ function renderTokenPool(){
 }
 
 function renderMarket(){
+  if (!el.market) return;
   el.market.innerHTML = "";
-  for (const card of state.market.slots){
-    const div = document.createElement("div");
-    div.className = "card" + (ui.selectedMarketCardId === card.id ? " selected" : "");
-    div.dataset.cardId = card.id;
+  const layout = [
+    { label: "Lv1", level: 1, count: 4 },
+    { label: "Lv2", level: 2, count: 4 },
+    { label: "Lv3", level: 3, count: 4 },
+    { label: "稀有", level: 4, count: 1 },
+    { label: "传说", level: 5, count: 1 },
+  ];
 
-    const name = document.createElement("div");
-    name.className = "name";
-    name.textContent = card.name || "(未命名)";
-    div.appendChild(name);
+  for (const cfg of layout){
+    const row = document.createElement("div");
+    row.className = "market-row";
+    const title = document.createElement("div");
+    title.className = "section-title";
+    title.textContent = `${cfg.label} · ${cfg.count} 张`;
+    row.appendChild(title);
 
-    const meta = document.createElement("div");
-    meta.className = "meta";
-    meta.innerHTML = `
-      <span>Lv ${card.level}</span>
-      <span>奖杯 ${card.point}</span>
-      <span>ID ${String(card.id).slice(0,10)}…</span>
-    `;
-    div.appendChild(meta);
-
-    const cost = document.createElement("div");
-    cost.className = "cost";
-    if (Array.isArray(card.cost)){
-      for (const it of card.cost){
-        const pip = document.createElement("span");
-        pip.className = "pip";
-        pip.textContent = `${BALL_NAMES[it.ball_color] ?? "?"} ×${it.number}`;
-        cost.appendChild(pip);
-      }
-    }
-    div.appendChild(cost);
-
-    div.addEventListener("click", () => {
-      ui.selectedReservedCard = null;
-      ui.selectedMarketCardId = (ui.selectedMarketCardId === card.id) ? null : card.id;
-      renderMarket();
-      renderPlayers(); // 让玩家保留区取消高亮
+    const track = document.createElement("div");
+    track.className = "card-track";
+    const cards = state.market.slots.filter(c => (c.slotLevel ?? c.level) === cfg.level).slice(0, cfg.count);
+    cards.forEach(card => {
+      const selected = ui.selectedMarketCardId === card.id;
+      track.appendChild(renderCardTile(card, { compact:false, selected }));
     });
-
-    el.market.appendChild(div);
+    row.appendChild(track);
+    el.market.appendChild(row);
   }
 }
 
 function renderPlayers(){
+  if (!el.players) return;
   el.players.innerHTML = "";
   state.players.forEach((p, idx) => {
     const wrap = document.createElement("div");
@@ -625,46 +684,38 @@ function renderPlayers(){
 
     wrap.appendChild(head);
 
-    const zones = document.createElement("div");
-    zones.className = "zonegrid";
+    const body = document.createElement("div");
+    body.className = "player-body";
 
-    zones.appendChild(renderZone("手牌区（已捕捉展示区）", p.hand, { clickable:false }));
-    zones.appendChild(renderZone("保留区（点击可购买）", p.reserved, { clickable:true, playerIndex: idx }));
-    zones.appendChild(renderTokenZone(p.tokens));
+    body.appendChild(renderZone("已获得卡牌", p.hand, { clickable:false }));
+    body.appendChild(renderZone("保留区", p.reserved, { clickable:true, playerIndex: idx }));
+    body.appendChild(renderTokenZone(p.tokens));
 
-    wrap.appendChild(zones);
+    wrap.appendChild(body);
     el.players.appendChild(wrap);
   });
 }
 
 function renderZone(title, cards, opts){
   const zone = document.createElement("div");
-  zone.className = "zone";
+  zone.className = "player-section";
 
   const zt = document.createElement("div");
-  zt.className = "zone-title";
-  zt.innerHTML = `<span>${title}</span><span class="pip">数量 ${cards.length}</span>`;
+  zt.className = "section-title";
+  zt.innerHTML = `${title} · 数量 ${cards.length}`;
   zone.appendChild(zt);
 
   const items = document.createElement("div");
-  items.className = "zone-items";
+  items.className = "card-list";
 
   for (const card of cards){
-    const m = document.createElement("div");
-    m.className = "mini";
     const selected = ui.selectedReservedCard &&
       ui.selectedReservedCard.cardId === card.id &&
       ui.selectedReservedCard.playerIndex === opts.playerIndex;
-    if (selected) m.style.boxShadow = "0 0 0 2px rgba(245,158,11,0.65)";
-
-    m.innerHTML = `
-      <div class="t">${escapeHtml(card.name || "(未命名)")}</div>
-      <div class="s">Lv ${card.level} · 奖杯 ${card.point}</div>
-    `;
+    const tile = renderCardTile(card, { compact:true, selected, clickable:false });
 
     if (opts.clickable){
-      m.addEventListener("click", () => {
-        // 只允许点击当前玩家自己的保留区来买
+      tile.addEventListener("click", () => {
         ui.selectedMarketCardId = null;
         const same = ui.selectedReservedCard &&
           ui.selectedReservedCard.cardId === card.id &&
@@ -676,7 +727,7 @@ function renderZone(title, cards, opts){
       });
     }
 
-    items.appendChild(m);
+    items.appendChild(tile);
   }
 
   zone.appendChild(items);
@@ -685,23 +736,24 @@ function renderZone(title, cards, opts){
 
 function renderTokenZone(tokens){
   const zone = document.createElement("div");
-  zone.className = "zone";
+  zone.className = "player-section";
 
   const total = tokens.reduce((a,b)=>a+b,0);
   const zt = document.createElement("div");
-  zt.className = "zone-title";
-  zt.innerHTML = `<span>token 区</span><span class="pip">${total}/10</span>`;
+  zt.className = "section-title";
+  zt.textContent = `Token · ${total}/10`;
   zone.appendChild(zt);
 
   const items = document.createElement("div");
-  items.className = "zone-items";
+  items.className = "token-row";
 
   for (let c=0;c<6;c++){
     const t = document.createElement("div");
-    t.className = "mini";
+    t.className = "mini-token";
     t.innerHTML = `
-      <div class="t">${BALL_NAMES[c]}</div>
-      <div class="s">× ${tokens[c]}</div>
+      <div class="icon"></div>
+      <div>${BALL_NAMES[c]}</div>
+      <div>× ${tokens[c]}</div>
     `;
     items.appendChild(t);
   }
@@ -709,40 +761,83 @@ function renderTokenZone(tokens){
   return zone;
 }
 
+function renderCardTile(card, opts = {}){
+  const tile = document.createElement("div");
+  tile.className = "card-tile" + (opts.compact ? " compact" : "") + (opts.selected ? " selected" : "");
+
+  const img = document.createElement("div");
+  img.className = "card-image";
+  img.style.backgroundImage = `url(${card.src || "card_image/masterball.svg"})`;
+  tile.appendChild(img);
+
+  const name = document.createElement("div");
+  name.className = "card-name";
+  name.textContent = card.name || "(未命名)";
+  tile.appendChild(name);
+
+  const meta = document.createElement("div");
+  meta.className = "card-meta";
+  meta.innerHTML = `<span>Lv ${card.level}</span><span>⭐ ${card.point}</span>`;
+  tile.appendChild(meta);
+
+  const cost = document.createElement("div");
+  cost.className = "card-cost";
+  if (Array.isArray(card.cost)){
+    card.cost.forEach(it => {
+      const pip = document.createElement("span");
+      pip.className = "pip";
+      pip.textContent = `${BALL_NAMES[it.ball_color] ?? "?"} ×${it.number}`;
+      cost.appendChild(pip);
+    });
+  }
+  tile.appendChild(cost);
+
+  tile.addEventListener("click", () => {
+    if (!opts.clickable && opts.clickable !== undefined) return;
+    ui.selectedReservedCard = null;
+    const selected = ui.selectedMarketCardId === card.id;
+    ui.selectedMarketCardId = selected ? null : card.id;
+    renderMarket();
+    renderPlayers();
+  });
+
+  return tile;
+}
+
 // ========== 11) 事件绑定 ==========
-el.btnNew.addEventListener("click", () => {
+if (el.btnNew) el.btnNew.addEventListener("click", async () => {
   const n = Number(el.playerCount.value);
-  newGame(n);
+  await newGame(n);
   toast("已开始新游戏");
 });
 
-el.btnSave.addEventListener("click", saveToLocal);
-el.btnLoad.addEventListener("click", loadFromLocal);
-el.btnExport.addEventListener("click", exportSave);
+if (el.btnSave) el.btnSave.addEventListener("click", saveToLocal);
+if (el.btnLoad) el.btnLoad.addEventListener("click", loadFromLocal);
+if (el.btnExport) el.btnExport.addEventListener("click", exportSave);
 
-el.importFile.addEventListener("change", (e) => {
+if (el.importFile) el.importFile.addEventListener("change", (e) => {
   const f = e.target.files?.[0];
   if (f) importSaveFile(f);
   e.target.value = "";
 });
 
-el.btnResetStorage.addEventListener("click", () => {
+if (el.btnResetStorage) el.btnResetStorage.addEventListener("click", () => {
   localStorage.removeItem(STORAGE_KEY);
   toast("已清空本地存档");
 });
 
-el.btnReplaceOne.addEventListener("click", actionReplaceOnePlaceholder);
+if (el.btnReplaceOne) el.btnReplaceOne.addEventListener("click", actionReplaceOne);
 
-el.actTake3.addEventListener("click", actionTake3Different);
-el.actTake2.addEventListener("click", actionTake2Same);
-el.actReserve.addEventListener("click", actionReserve);
-el.actBuy.addEventListener("click", actionBuy);
-el.actEvolve.addEventListener("click", actionEvolvePlaceholder);
-el.actEndTurn.addEventListener("click", endTurn);
+if (el.actTake3) el.actTake3.addEventListener("click", actionTake3Different);
+if (el.actTake2) el.actTake2.addEventListener("click", actionTake2Same);
+if (el.actReserve) el.actReserve.addEventListener("click", actionReserve);
+if (el.actBuy) el.actBuy.addEventListener("click", actionBuy);
+if (el.actEvolve) el.actEvolve.addEventListener("click", actionEvolvePlaceholder);
+if (el.actEndTurn) el.actEndTurn.addEventListener("click", endTurn);
 
 // ========== 12) 启动 ==========
-(function boot(){
-  // 自动尝试读档；没有就开新局
+async function boot(){
+  await cardsReady;
   const raw = localStorage.getItem(STORAGE_KEY);
   if (raw){
     try{
@@ -751,9 +846,11 @@ el.actEndTurn.addEventListener("click", endTurn);
       return;
     }catch{}
   }
-  newGame(Number(el.playerCount.value));
+  await newGame(Number(el.playerCount.value));
   toast("已创建默认新游戏");
-})();
+}
+
+boot();
 
 // ========== 13) 工具 ==========
 function clearSelections(){

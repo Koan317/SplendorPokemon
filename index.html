@@ -41,143 +41,21 @@
     </header>
 
     <main class="app">
-        <!-- 左侧：麻将桌式打牌区域 -->
-        <section class="table-area">
+        <section class="board">
+            <div class="market-area">
+                <div class="market-header">
+                    <h3>展示区</h3>
+                    <div class="market-note">所有区域填满卡牌以便预览</div>
+                </div>
+                <div id="market" class="market-rows"></div>
 
-            <!-- 上方电脑玩家 -->
-            <div class="player-area top" id="player-top">
-                <div class="player-board horizontal">
-                    <div class="zone reserved-zone">
-                        <div class="zone-title">保留区</div>
-                        <div class="reserved-stack"></div>
-                    </div>
-                    <div class="zone info-zone">
-                        <div class="zone-title">信息</div>
-                        <div class="score-line">⭐ <span>0</span></div>
-                        <div class="token-grid"></div>
-                    </div>
-                    <div class="zone owned-zone">
-                        <div class="zone-title">已获得卡牌</div>
-                    </div>
+                <div class="pool-block">
+                    <div class="section-title">公共 Token</div>
+                    <div id="tokenPool" class="token-pool"></div>
                 </div>
             </div>
 
-            <!-- 左侧电脑玩家（竖向） -->
-            <div class="player-area left" id="player-left">
-                <div class="player-board vertical">
-                    <div class="zone reserved-zone">
-                        <div class="zone-title">保留区</div>
-                        <div class="reserved-stack"></div>
-                    </div>
-                    <div class="zone info-zone">
-                        <div class="zone-title">信息</div>
-                        <div class="score-line">⭐ <span>0</span></div>
-                        <div class="token-grid"></div>
-                    </div>
-                    <div class="zone owned-zone">
-                        <div class="zone-title">已获得卡牌</div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- 中央牌桌 -->
-            <div class="center-area">
-
-                <div class="card-zones">
-
-                    <!-- Lv1 -->
-                    <div class="zone level-1">
-                        <div class="deck">Lv1</div>
-                        <div class="display">
-                            <div class="slot"></div><div class="slot"></div>
-                            <div class="slot"></div><div class="slot"></div>
-                        </div>
-                    </div>
-
-                    <!-- Lv2 -->
-                    <div class="zone level-2">
-                        <div class="deck">Lv2</div>
-                        <div class="display">
-                            <div class="slot"></div><div class="slot"></div>
-                            <div class="slot"></div><div class="slot"></div>
-                        </div>
-                    </div>
-
-                    <!-- Lv3 -->
-                    <div class="zone level-3">
-                        <div class="deck">Lv3</div>
-                        <div class="display">
-                            <div class="slot"></div><div class="slot"></div>
-                            <div class="slot"></div><div class="slot"></div>
-                        </div>
-                    </div>
-
-                    <!-- 稀有 -->
-                    <div class="zone rare">
-                        <div class="deck">稀有</div>
-                        <div class="display">
-                            <div class="slot"></div>
-                        </div>
-                    </div>
-
-                    <!-- 传说 -->
-                    <div class="zone legend">
-                        <div class="deck">传说</div>
-                        <div class="display">
-                            <div class="slot"></div>
-                        </div>
-                    </div>
-
-                </div>
-
-                <!-- Token 公共区 -->
-                <div class="token-zone">
-                    <div class="token-slot red"></div>
-                    <div class="token-slot pink"></div>
-                    <div class="token-slot blue"></div>
-                    <div class="token-slot yellow"></div>
-                    <div class="token-slot black"></div>
-                    <div class="token-slot purple"></div>
-                </div>
-
-            </div>
-
-            <!-- 右侧电脑玩家（竖向） -->
-            <div class="player-area right" id="player-right">
-                <div class="player-board vertical">
-                    <div class="zone reserved-zone">
-                        <div class="zone-title">保留区</div>
-                        <div class="reserved-stack"></div>
-                    </div>
-                    <div class="zone info-zone">
-                        <div class="zone-title">信息</div>
-                        <div class="score-line">⭐ <span>0</span></div>
-                        <div class="token-grid"></div>
-                    </div>
-                    <div class="zone owned-zone">
-                        <div class="zone-title">已获得卡牌</div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- 下方玩家 -->
-            <div class="player-area bottom" id="player-bottom">
-                <div class="player-board horizontal">
-                    <div class="zone reserved-zone">
-                        <div class="zone-title">保留区</div>
-                        <div class="reserved-stack"></div>
-                    </div>
-                    <div class="zone info-zone">
-                        <div class="zone-title">信息</div>
-                        <div class="score-line">⭐ <span>0</span></div>
-                        <div class="token-grid"></div>
-                    </div>
-                    <div class="zone owned-zone">
-                        <div class="zone-title">已获得卡牌</div>
-                    </div>
-                </div>
-            </div>
-
+            <div class="players-area" id="players"></div>
         </section>
 
         <!-- 右侧信息栏 -->
