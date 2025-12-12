@@ -40,56 +40,65 @@
     </div>
   </header>
 
-  <main class="layout">
-    <section class="panel">
-      <h2>公共供应区</h2>
+  <main class="app">
+      <!-- 左侧：打牌主区域（4/5） -->
+      <section class="play-area">
 
-      <div class="pool">
-        <div class="pool-row" id="tokenPool"></div>
-        <div class="pool-hint">
-          颜色枚举：red_ball=0, pink_ball=1, blue_ball=2, yellow_ball=3, black_ball=4, purple_ball=5
-        </div>
-      </div>
+          <!-- 公共区 -->
+          <section class="public-area">
+              <h2>公共区域</h2>
 
-      <div class="market">
-        <h3>中央展示区（占位牌面）</h3>
-        <div class="market-grid" id="market"></div>
-        <div class="market-actions">
-          <button id="btnReplaceOne" class="btn ghost">弃掉展示区 1 张并补 1 张（占位）</button>
-        </div>
-      </div>
+              <div class="token-pool">
+                  <h3>精灵球供应</h3>
+                  <div id="tokenPool" class="pool-row"></div>
+              </div>
 
-      <div class="turnbox">
-        <div class="turnline">
-          <span class="badge" id="turnBadge">回合：-</span>
-          <span class="badge" id="currentPlayerBadge">当前玩家：-</span>
-          <span class="badge" id="trophyBadge">奖杯：-</span>
-        </div>
+              <div class="market-area">
+                  <h3>中央展示区</h3>
+                  <div id="market" class="market-grid"></div>
+              </div>
+          </section>
 
-        <div class="action-grid">
-          <button id="actTake3" class="btn">行动1：拿3个不同色</button>
-          <button id="actTake2" class="btn">行动2：拿2个同色（需≥4）</button>
-          <button id="actReserve" class="btn">行动3：保留1张并拿1大师球</button>
-          <button id="actBuy" class="btn">行动4：捕捉/购买1张</button>
-          <button id="actEvolve" class="btn ghost">进化（占位：每回合一次）</button>
-          <button id="actEndTurn" class="btn primary">结束回合</button>
-        </div>
+          <!-- 玩家区 -->
+          <section class="players-area">
+              <h2>玩家区域</h2>
+              <div id="players" class="players-vertical"></div>
+          </section>
 
-        <div class="help">
-          <div class="help-title">操作提示（点击即可）</div>
-          <ul>
-            <li>点击公共 token 颜色：用于“拿球”选择</li>
-            <li>点击展示区卡牌：用于“保留 / 购买”选择</li>
-            <li>点击玩家保留区卡牌：用于“购买保留牌”选择</li>
-          </ul>
-        </div>
-      </div>
-    </section>
+      </section>
 
-    <section class="panel">
-      <h2>玩家区域</h2>
-      <div id="players" class="players"></div>
-    </section>
+      <!-- 右侧：UI 侧边栏（1/5） -->
+      <aside class="side-panel">
+
+          <section class="side-block">
+              <h3>回合信息</h3>
+              <div class="info-line">回合：<span id="turnBadge"></span></div>
+              <div class="info-line">当前玩家：<span id="currentPlayerBadge"></span></div>
+              <div class="info-line">奖杯数：<span id="trophyBadge"></span></div>
+          </section>
+
+          <section class="side-block">
+              <h3>操作</h3>
+              <button id="actTake3">拿 3 个不同色</button>
+              <button id="actTake2">拿 2 个同色</button>
+              <button id="actReserve">保留卡牌</button>
+              <button id="actBuy">捕捉 / 购买</button>
+              <button id="actEvolve">进化</button>
+              <button id="actEndTurn" class="primary">结束回合</button>
+          </section>
+
+          <section class="side-block">
+              <h3>打牌记录</h3>
+              <div id="logPanel" class="log-panel"></div>
+          </section>
+
+          <section class="side-block">
+              <h3>存档</h3>
+              <button id="btnSave">存档</button>
+              <button id="btnLoad">读档</button>
+          </section>
+
+      </aside>
   </main>
 
   <footer class="footer">

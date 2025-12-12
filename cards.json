@@ -16,7 +16,80 @@
       "number": -1
     },
     "cost": [
-      { "ball_color": -1, "number": -1 }
+      {
+        "ball_color": -1,
+        "number": -1
+      }
+    ]
+  },
+  {
+    "name": "独角虫",
+    "src": "",
+    "level": 1,
+    "point": 0,
+    "evolution": {
+      "name": "铁壳蛹",
+      "cost": {
+        "ball_color": 0,
+        "number": 3
+      }
+    },
+    "reward": {
+      "ball_color": 4,
+      "number": 1
+    },
+    "cost": [
+      {
+        "ball_color": 0,
+        "number": 1
+      },
+      {
+        "ball_color": 3,
+        "number": 1
+      },
+      {
+        "ball_color": 1,
+        "number": 1
+      },
+      {
+        "ball_color": 2,
+        "number": 1
+      }
+    ]
+  },
+  {
+    "name": "独角虫",
+    "src": "",
+    "level": 1,
+    "point": 0,
+    "evolution": {
+      "name": "铁壳蛹",
+      "cost": {
+        "ball_color": 0,
+        "number": 3
+      }
+    },
+    "reward": {
+      "ball_color": 4,
+      "number": 1
+    },
+    "cost": [
+      {
+        "ball_color": 0,
+        "number": 1
+      },
+      {
+        "ball_color": 3,
+        "number": 1
+      },
+      {
+        "ball_color": 1,
+        "number": 1
+      },
+      {
+        "ball_color": 2,
+        "number": 1
+      }
     ]
   }
 ]
