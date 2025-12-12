@@ -222,5 +222,29 @@
         "number": 4
       }
     ]
+  },
+  {
+    "name": "迷你龙",
+    "md5": "4aaf12c3dc52a9ebe7eb5ac746b3d7f1",
+    "src": "card_image/迷你龙2",
+    "level": 1,
+    "point": 1,
+    "evolution": {
+      "name": "哈克龙",
+      "cost": {
+        "ball_color": 2,
+        "number": 3
+      }
+    },
+    "reward": {
+      "ball_color": 4,
+      "number": 1
+    },
+    "cost": [
+      {
+        "ball_color": 4,
+        "number": 4
+      }
+    ]
   }
 ]
