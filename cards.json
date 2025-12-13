@@ -224,26 +224,38 @@
     ]
   },
   {
-    "name": "迷你龙",
-    "md5": "4aaf12c3dc52a9ebe7eb5ac746b3d7f1",
-    "src": "card_image/迷你龙2",
+    "name": "鬼斯",
+    "md5": "59c6af5328a651ff293b9fa1e873d7a0",
+    "src": "card_image/鬼斯1",
     "level": 1,
-    "point": 1,
+    "point": 0,
     "evolution": {
-      "name": "哈克龙",
+      "name": "鬼斯通",
       "cost": {
-        "ball_color": 2,
+        "ball_color": 4,
         "number": 3
       }
     },
     "reward": {
-      "ball_color": 4,
+      "ball_color": 3,
       "number": 1
     },
     "cost": [
       {
+        "ball_color": 2,
+        "number": 1
+      },
+      {
+        "ball_color": 0,
+        "number": 1
+      },
+      {
+        "ball_color": 1,
+        "number": 1
+      },
+      {
         "ball_color": 4,
-        "number": 4
+        "number": 1
       }
     ]
   }
