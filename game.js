@@ -1,7 +1,7 @@
-// game.js (ESM)
+// game.js
 
 // ========== 1) 枚举：精灵球 ==========
-export const Ball = Object.freeze({
+const Ball = Object.freeze({
   red_ball: 0,
   pink_ball: 1,
   blue_ball: 2,
