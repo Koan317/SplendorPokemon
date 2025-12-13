@@ -88,6 +88,10 @@ body {
     display: none;
 }
 
+.hidden {
+    display: none !important;
+}
+
 /* =======================
    布局
 ======================= */
@@ -146,6 +150,72 @@ body {
     height: 100%;
     min-width: 0;
     min-height: 0;
+}
+
+body.modal-open .app,
+body.modal-open .topbar {
+    filter: blur(6px);
+    transition: filter 150ms ease;
+}
+
+.modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.45);
+    backdrop-filter: blur(6px);
+    z-index: 50;
+}
+
+.modal {
+    position: fixed;
+    inset: 0;
+    display: grid;
+    place-items: center;
+    z-index: 51;
+}
+
+.modal-content {
+    background: #0f172a;
+    border: 1px solid rgba(148, 163, 184, 0.35);
+    border-radius: 14px;
+    padding: 20px;
+    width: min(420px, 90vw);
+    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.45);
+}
+
+.modal-content h2 {
+    margin: 0 0 8px;
+    font-size: 18px;
+}
+
+.modal-content p {
+    margin: 0 0 14px;
+    color: var(--muted);
+}
+
+.modal .select {
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+    gap: 12px;
+}
+
+.modal .select select {
+    flex: 1;
+    padding: 8px;
+    background: rgba(17, 24, 39, 0.6);
+    color: var(--text);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+}
+
+.modal-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    justify-content: flex-end;
 }
 
 .player-board.horizontal {
