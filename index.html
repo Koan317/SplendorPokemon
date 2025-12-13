@@ -17,24 +17,9 @@
         </div>
 
         <div class="controls">
-            <label class="select">
-                <span>人数</span>
-                <select id="playerCount">
-                    <option value="2">2</option>
-                    <option value="3">3</option>
-                    <option value="4" selected>4</option>
-                </select>
-            </label>
-
             <button id="btnNew" class="btn">新游戏</button>
             <button id="btnSave" class="btn">存档</button>
             <button id="btnLoad" class="btn">读档</button>
-
-            <button id="btnExport" class="btn">导出存档JSON</button>
-            <label class="btn filebtn">
-                导入存档JSON
-                <input id="importFile" type="file" accept="application/json" />
-            </label>
 
             <button id="btnResetStorage" class="btn danger">清空本地存档</button>
         </div>
@@ -185,6 +170,38 @@
 
         </section>
     </main>
+
+    <div id="modalOverlay" class="modal-overlay hidden"></div>
+
+    <div id="confirmNewGameModal" class="modal hidden">
+        <div class="modal-content">
+            <h2>确认是否开始新游戏</h2>
+            <p>当前进度未必已保存，是否继续？</p>
+            <div class="modal-actions">
+                <button id="btnSaveAndNew" class="btn primary">保存并开始新游戏</button>
+                <button id="btnNewWithoutSave" class="btn danger">放弃保存开始新游戏</button>
+                <button id="btnCancelNew" class="btn">返回游戏</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="playerCountModal" class="modal hidden">
+        <div class="modal-content">
+            <h2>选择游戏人数</h2>
+            <label class="select">
+                <span>人数</span>
+                <select id="playerCount">
+                    <option value="2">2</option>
+                    <option value="3">3</option>
+                    <option value="4" selected>4</option>
+                </select>
+            </label>
+            <div class="modal-actions">
+                <button id="btnConfirmPlayerCount" class="btn primary">确认</button>
+                <button id="btnCancelPlayerCount" class="btn">取消</button>
+            </div>
+        </div>
+    </div>
     <script type="module" src="game.js"></script>
 </body>
 </html>

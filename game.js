@@ -25,11 +25,18 @@ const el = {
   btnNew: $("#btnNew"),
   btnSave: $("#btnSave"),
   btnLoad: $("#btnLoad"),
-  btnExport: $("#btnExport"),
-  importFile: $("#importFile"),
   btnResetStorage: $("#btnResetStorage"),
 
   btnReplaceOne: $("#btnReplaceOne"),
+
+  modalOverlay: $("#modalOverlay"),
+  confirmNewGameModal: $("#confirmNewGameModal"),
+  playerCountModal: $("#playerCountModal"),
+  btnSaveAndNew: $("#btnSaveAndNew"),
+  btnNewWithoutSave: $("#btnNewWithoutSave"),
+  btnCancelNew: $("#btnCancelNew"),
+  btnConfirmPlayerCount: $("#btnConfirmPlayerCount"),
+  btnCancelPlayerCount: $("#btnCancelPlayerCount"),
 
   turnBadge: $("#turnBadge"),
   currentPlayerBadge: $("#currentPlayerBadge"),
@@ -709,27 +716,54 @@ function renderTokenZone(tokens){
   return zone;
 }
 
+function showModal(modal){
+  document.querySelectorAll(".modal").forEach(m => m.classList.add("hidden"));
+  if (!modal) return;
+  el.modalOverlay.classList.remove("hidden");
+  document.body.classList.add("modal-open");
+  modal.classList.remove("hidden");
+}
+
+function closeModals(){
+  document.querySelectorAll(".modal").forEach(m => m.classList.add("hidden"));
+  el.modalOverlay.classList.add("hidden");
+  document.body.classList.remove("modal-open");
+}
+
 // ========== 11) 事件绑定 ==========
 el.btnNew.addEventListener("click", () => {
-  const n = Number(el.playerCount.value);
-  newGame(n);
-  toast("已开始新游戏");
+  showModal(el.confirmNewGameModal);
 });
 
 el.btnSave.addEventListener("click", saveToLocal);
 el.btnLoad.addEventListener("click", loadFromLocal);
-el.btnExport.addEventListener("click", exportSave);
-
-el.importFile.addEventListener("change", (e) => {
-  const f = e.target.files?.[0];
-  if (f) importSaveFile(f);
-  e.target.value = "";
-});
 
 el.btnResetStorage.addEventListener("click", () => {
   localStorage.removeItem(STORAGE_KEY);
   toast("已清空本地存档");
 });
+
+el.btnSaveAndNew.addEventListener("click", () => {
+  saveToLocal();
+  showModal(el.playerCountModal);
+});
+
+el.btnNewWithoutSave.addEventListener("click", () => {
+  showModal(el.playerCountModal);
+});
+
+el.btnCancelNew.addEventListener("click", closeModals);
+
+el.btnConfirmPlayerCount.addEventListener("click", () => {
+  const n = Number(el.playerCount.value);
+  newGame(Number.isFinite(n) ? n : 4);
+  toast("已开始新游戏");
+  closeModals();
+});
+
+el.btnCancelPlayerCount.addEventListener("click", closeModals);
+
+el.modalOverlay.addEventListener("click", closeModals);
 
 el.btnReplaceOne.addEventListener("click", actionReplaceOnePlaceholder);
 
