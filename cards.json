@@ -394,5 +394,33 @@
         "number": 2
       }
     ]
+  },
+  {
+    "name": "尼多兰",
+    "md5": "5645aecd0d8be81ef93160e23eed13d4",
+    "src": "card_image/尼多兰3",
+    "level": 1,
+    "point": 0,
+    "evolution": {
+      "name": "尼多娜",
+      "cost": {
+        "ball_color": 2,
+        "number": 2
+      }
+    },
+    "reward": {
+      "ball_color": 3,
+      "number": 1
+    },
+    "cost": [
+      {
+        "ball_color": 0,
+        "number": 2
+      },
+      {
+        "ball_color": 1,
+        "number": 1
+      }
+    ]
   }
 ]
