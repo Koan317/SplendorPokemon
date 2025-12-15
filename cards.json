@@ -1022,5 +1022,129 @@
         "number": 1
       }
     ]
+  },
+  {
+    "name": "隆隆石",
+    "md5": "8caa16ae6a05166fec5efbb81a643372",
+    "src": "card_image/隆隆石1",
+    "level": 2,
+    "point": 2,
+    "evolution": {
+      "name": "隆隆岩",
+      "cost": {
+        "ball_color": 4,
+        "number": 3
+      }
+    },
+    "reward": {
+      "ball_color": 2,
+      "number": 1
+    },
+    "cost": [
+      {
+        "ball_color": 1,
+        "number": 4
+      },
+      {
+        "ball_color": 3,
+        "number": 2
+      },
+      {
+        "ball_color": 4,
+        "number": 1
+      }
+    ]
+  },
+  {
+    "name": "隆隆石",
+    "md5": "898b4670abf208fcf15e5cfc03ac35fc",
+    "src": "card_image/隆隆石2",
+    "level": 2,
+    "point": 2,
+    "evolution": {
+      "name": "隆隆岩",
+      "cost": {
+        "ball_color": 4,
+        "number": 3
+      }
+    },
+    "reward": {
+      "ball_color": 2,
+      "number": 1
+    },
+    "cost": [
+      {
+        "ball_color": 2,
+        "number": 5
+      },
+      {
+        "ball_color": 0,
+        "number": 2
+      }
+    ]
+  },
+  {
+    "name": "比比鸟",
+    "md5": "df0864d7e48442c1b0ed0bdafe9dbc80",
+    "src": "card_image/比比鸟1",
+    "level": 2,
+    "point": 1,
+    "evolution": {
+      "name": "大比鸟",
+      "cost": {
+        "ball_color": 0,
+        "number": 4
+      }
+    },
+    "reward": {
+      "ball_color": 2,
+      "number": 1
+    },
+    "cost": [
+      {
+        "ball_color": 2,
+        "number": 3
+      },
+      {
+        "ball_color": 1,
+        "number": 2
+      },
+      {
+        "ball_color": 4,
+        "number": 2
+      }
+    ]
+  },
+  {
+    "name": "比比鸟",
+    "md5": "49299d5e1f900da199b701f0c1e43e5b",
+    "src": "card_image/比比鸟2",
+    "level": 2,
+    "point": 1,
+    "evolution": {
+      "name": "大比鸟",
+      "cost": {
+        "ball_color": 0,
+        "number": 4
+      }
+    },
+    "reward": {
+      "ball_color": 2,
+      "number": 1
+    },
+    "cost": [
+      {
+        "ball_color": 0,
+        "number": 3
+      },
+      {
+        "ball_color": 3,
+        "number": 2
+      },
+      {
+        "ball_color": 1,
+        "number": 2
+      }
+    ]
   }
 ]
