@@ -3,7 +3,7 @@
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
-    <title>璀璨宝石（Pokémon）- HTML 版</title>
+    <title>璀璨宝石（Pokémon）- 热坐轮换桌面版</title>
     <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
@@ -12,7 +12,7 @@
             <div class="logo">◆</div>
             <div>
                 <div class="title">璀璨宝石（Pokémon）</div>
-                <div class="sub">原生 HTML / Mahjong-style Table</div>
+                <div class="sub">2~4 人同屏热坐 · 牌桌主持视角</div>
             </div>
         </div>
 
@@ -20,78 +20,94 @@
             <button id="btnNew" class="btn">新游戏</button>
             <button id="btnSave" class="btn">存档</button>
             <button id="btnLoad" class="btn">读档</button>
-
             <button id="btnResetStorage" class="btn danger">清空本地存档</button>
         </div>
     </header>
 
-    <main class="app">
-        <!-- 左侧：麻将桌式打牌区域 -->
-        <section class="table-area">
-
-            <!-- 上方电脑玩家 -->
-            <div class="player-area top" id="player-top">
-                <div class="player-board horizontal">
-                    <div class="player-section reserved-section">
-                        <div class="section-header">保留区</div>
-                        <div class="reserved-stack"></div>
+    <main class="app hotseat">
+        <section class="turn-rail" aria-label="玩家顺位">
+            <h3>顺位轨道</h3>
+            <div class="player-pills">
+                <div class="pill active">
+                    <div class="pill-main">
+                        <span class="pill-name">玩家 1</span>
+                        <span class="pill-score">⭐ 0</span>
                     </div>
-                    <div class="player-section info-section">
-                        <div class="section-header">信息</div>
-                        <div class="score-line">⭐ <span>0</span></div>
-                        <div class="token-grid"></div>
+                    <div class="pill-meta">手牌 0 | 保留 0 | 宝石 0</div>
+                </div>
+                <div class="pill">
+                    <div class="pill-main">
+                        <span class="pill-name">玩家 2</span>
+                        <span class="pill-score">⭐ 0</span>
                     </div>
-                    <div class="player-section owned-section">
-                        <div class="section-header">已获得卡牌</div>
+                    <div class="pill-meta">手牌 0 | 保留 0 | 宝石 0</div>
+                </div>
+                <div class="pill ghost">
+                    <div class="pill-main">
+                        <span class="pill-name">玩家 3</span>
+                        <span class="pill-score">⭐ 0</span>
                     </div>
+                    <div class="pill-meta">等待加入</div>
+                </div>
+                <div class="pill ghost">
+                    <div class="pill-main">
+                        <span class="pill-name">玩家 4</span>
+                        <span class="pill-score">⭐ 0</span>
+                    </div>
+                    <div class="pill-meta">等待加入</div>
                 </div>
             </div>
 
-            <!-- 左侧电脑玩家（竖向） -->
-            <div class="player-area left" id="player-left">
-                <div class="player-board vertical">
-                    <div class="player-section reserved-section">
-                        <div class="section-header">保留区</div>
-                        <div class="reserved-stack"></div>
-                    </div>
-                    <div class="player-section info-section">
-                        <div class="section-header">信息</div>
-                        <div class="score-line">⭐ <span>0</span></div>
-                        <div class="token-grid"></div>
-                    </div>
-                    <div class="player-section owned-section">
-                        <div class="section-header">已获得卡牌</div>
-                    </div>
+            <div class="turn-hint">
+                <div class="badge">当前回合</div>
+                <div class="hint-body">
+                    <div class="hint-title">轮到 <strong>玩家 1</strong></div>
+                    <p>把椅子让给下一位玩家，大家共享一台电脑。行动提示会显示在下方控制条。</p>
                 </div>
             </div>
 
-            <!-- 中央牌桌 -->
+            <div class="hot-actions">
+                <button id="actTake3" class="btn primary">拿 3 种不同球</button>
+                <button id="actTake2" class="btn">拿 2 个同色球</button>
+                <button id="actReserve" class="btn">保留卡 + 大师球</button>
+                <button id="actBuy" class="btn">购买 / 捕捉</button>
+                <button id="actEvolve" class="btn">进化一次</button>
+                <button id="actEndTurn" class="btn end-turn">结束回合</button>
+            </div>
+        </section>
+
+        <section class="table-area hotseat-table">
             <div class="center-area">
-
                 <div class="card-zones">
 
                     <div class="level-stack">
-                        <!-- Lv1 -->
                         <div class="zone level-1">
-                            <div class="deck level-1-back">Lv1</div>
+                            <div class="zone-head">
+                                <div class="deck level-1-back">Lv1</div>
+                                <div class="zone-note">基础探索，消耗较低</div>
+                            </div>
                             <div class="display">
                                 <div class="slot"></div><div class="slot"></div>
                                 <div class="slot"></div><div class="slot"></div>
                             </div>
                         </div>
 
-                        <!-- Lv2 -->
                         <div class="zone level-2">
-                            <div class="deck level-2-back">Lv2</div>
+                            <div class="zone-head">
+                                <div class="deck level-2-back">Lv2</div>
+                                <div class="zone-note">中期主力，奖励更好</div>
+                            </div>
                             <div class="display">
                                 <div class="slot"></div><div class="slot"></div>
                                 <div class="slot"></div><div class="slot"></div>
                             </div>
                         </div>
 
-                        <!-- Lv3 -->
                         <div class="zone level-3">
-                            <div class="deck level-3-back">Lv3</div>
+                            <div class="zone-head">
+                                <div class="deck level-3-back">Lv3</div>
+                                <div class="zone-note">高分冲刺</div>
+                            </div>
                             <div class="display">
                                 <div class="slot"></div><div class="slot"></div>
                                 <div class="slot"></div><div class="slot"></div>
@@ -100,69 +116,60 @@
                     </div>
 
                     <div class="special-stack">
-                        <!-- 稀有 -->
                         <div class="zone rare">
-                            <div class="deck rare-back">稀有</div>
-                            <div class="display">
-                                <div class="slot"></div>
+                            <div class="zone-head">
+                                <div class="deck rare-back">稀有</div>
+                                <div class="zone-note">特殊能力 / 小目标</div>
                             </div>
+                            <div class="display"><div class="slot"></div></div>
                         </div>
 
-                        <!-- 传说 -->
                         <div class="zone legend">
-                            <div class="deck legend-back">传说</div>
-                            <div class="display">
-                                <div class="slot"></div>
+                            <div class="zone-head">
+                                <div class="deck legend-back">传说</div>
+                                <div class="zone-note">终局胜利点</div>
                             </div>
+                            <div class="display"><div class="slot"></div></div>
                         </div>
                     </div>
 
                 </div>
 
-                <!-- Token 公共区 -->
                 <div class="token-zone">
-                    <div id="tokenPool" class="token-pool"></div>
-                    <button id="actEndTurn" class="btn end-turn">结束回合</button>
-                </div>
-
-            </div>
-
-            <!-- 右侧电脑玩家（竖向） -->
-            <div class="player-area right" id="player-right">
-                <div class="player-board vertical">
-                    <div class="player-section reserved-section">
-                        <div class="section-header">保留区</div>
-                        <div class="reserved-stack"></div>
-                    </div>
-                    <div class="player-section info-section">
-                        <div class="section-header">信息</div>
-                        <div class="score-line">⭐ <span>0</span></div>
-                        <div class="token-grid"></div>
-                    </div>
-                    <div class="player-section owned-section">
-                        <div class="section-header">已获得卡牌</div>
+                    <div class="token-pool" id="tokenPool"></div>
+                    <div class="token-help">
+                        <div>公共宝石池</div>
+                        <small>点击筹码即可取球；满 10 以上会提醒交还。</small>
                     </div>
                 </div>
             </div>
 
-            <!-- 下方玩家 -->
-            <div class="player-area bottom" id="player-bottom">
-                <div class="player-board horizontal">
-                    <div class="player-section reserved-section">
-                        <div class="section-header">保留区</div>
-                        <div class="reserved-stack"></div>
+            <aside class="player-dashboard" aria-label="当前玩家状态">
+                <div class="dash-header">
+                    <div>
+                        <div class="dash-title">当前玩家面板</div>
+                        <div class="dash-meta">查看手牌、折扣与保留卡</div>
                     </div>
-                    <div class="player-section info-section">
-                        <div class="section-header">信息</div>
-                        <div class="score-line">⭐ <span>0</span></div>
-                        <div class="token-grid"></div>
-                    </div>
-                    <div class="player-section owned-section">
-                        <div class="section-header">已获得卡牌</div>
-                    </div>
+                    <div class="dash-score">⭐ <span>0</span></div>
                 </div>
-            </div>
 
+                <div class="dash-section">
+                    <div class="dash-section-title">持有球</div>
+                    <div class="token-grid"></div>
+                </div>
+
+                <div class="dash-section">
+                    <div class="dash-section-title">折扣 / 已获得卡牌</div>
+                    <div class="owned-section"></div>
+                </div>
+
+                <div class="dash-section">
+                    <div class="dash-section-title">保留卡</div>
+                    <div class="reserved-stack"></div>
+                </div>
+
+                <div class="dash-footer">热坐提示：操作完毕点击“结束回合”，然后把座位让给下一位。</div>
+            </aside>
         </section>
     </main>
 
