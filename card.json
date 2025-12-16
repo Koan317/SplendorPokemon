@@ -1910,7 +1910,7 @@
       "src": "card_image/蚊香泳士.png",
       "level": 3,
       "point": 3,
-      "evolution": {},
+      "evolution": null,
       "reward": {
         "ball_color": 1,
         "number": 1
@@ -1936,7 +1936,7 @@
       "src": "card_image/巴大蝶.png",
       "level": 3,
       "point": 4,
-      "evolution": {},
+      "evolution": null,
       "reward": {
         "ball_color": 1,
         "number": 1
@@ -1958,7 +1958,7 @@
       "src": "card_image/胡地.png",
       "level": 3,
       "point": 5,
-      "evolution": {},
+      "evolution": null,
       "reward": {
         "ball_color": 1,
         "number": 1
@@ -1980,7 +1980,7 @@
       "src": "card_image/大食花.png",
       "level": 3,
       "point": 3,
-      "evolution": {},
+      "evolution": null,
       "reward": {
         "ball_color": 0,
         "number": 1
@@ -2006,7 +2006,7 @@
       "src": "card_image/怪力.png",
       "level": 3,
       "point": 4,
-      "evolution": {},
+      "evolution": null,
       "reward": {
         "ball_color": 0,
         "number": 1
@@ -2028,7 +2028,7 @@
       "src": "card_image/水箭龟.png",
       "level": 3,
       "point": 5,
-      "evolution": {},
+      "evolution": null,
       "reward": {
         "ball_color": 0,
         "number": 1
@@ -2050,7 +2050,7 @@
       "src": "card_image/尼多后.png",
       "level": 3,
       "point": 3,
-      "evolution": {},
+      "evolution": null,
       "reward": {
         "ball_color": 3,
         "number": 1
@@ -2076,7 +2076,7 @@
       "src": "card_image/耿鬼.png",
       "level": 3,
       "point": 4,
-      "evolution": {},
+      "evolution": null,
       "reward": {
         "ball_color": 3,
         "number": 1
@@ -2098,7 +2098,7 @@
       "src": "card_image/妙蛙花.png",
       "level": 3,
       "point": 5,
-      "evolution": {},
+      "evolution": null,
       "reward": {
         "ball_color": 3,
         "number": 1
@@ -2120,7 +2120,7 @@
       "src": "card_image/大比鸟.png",
       "level": 3,
       "point": 3,
-      "evolution": {},
+      "evolution": null,
       "reward": {
         "ball_color": 2,
         "number": 1
@@ -2146,7 +2146,7 @@
       "src": "card_image/隆隆岩.png",
       "level": 3,
       "point": 4,
-      "evolution": {},
+      "evolution": null,
       "reward": {
         "ball_color": 2,
         "number": 1
@@ -2168,7 +2168,7 @@
       "src": "card_image/喷火龙.png",
       "level": 3,
       "point": 5,
-      "evolution": {},
+      "evolution": null,
       "reward": {
         "ball_color": 2,
         "number": 1
@@ -2190,7 +2190,7 @@
       "src": "card_image/霸王花.png",
       "level": 3,
       "point": 3,
-      "evolution": {},
+      "evolution": null,
       "reward": {
         "ball_color": 4,
         "number": 1
@@ -2216,7 +2216,7 @@
       "src": "card_image/大针蜂.png",
       "level": 3,
       "point": 4,
-      "evolution": {},
+      "evolution": null,
       "reward": {
         "ball_color": 4,
         "number": 1
@@ -2238,7 +2238,7 @@
       "src": "card_image/快龙.png",
       "level": 3,
       "point": 5,
-      "evolution": {},
+      "evolution": null,
       "reward": {
         "ball_color": 4,
         "number": 1
@@ -2262,7 +2262,7 @@
       "src": "card_image/化石翼龙.png",
       "level": 4,
       "point": 0,
-      "evolution": {},
+      "evolution": null,
       "reward": {
         "ball_color": 3,
         "number": 2
@@ -2288,7 +2288,7 @@
       "src": "card_image/卡比兽.png",
       "level": 4,
       "point": 0,
-      "evolution": {},
+      "evolution": null,
       "reward": {
         "ball_color": 1,
         "number": 2
@@ -2314,7 +2314,7 @@
       "src": "card_image/拉普拉斯.png",
       "level": 4,
       "point": 0,
-      "evolution": {},
+      "evolution": null,
       "reward": {
         "ball_color": 0,
         "number": 2
@@ -2340,7 +2340,7 @@
       "src": "card_image/百变怪.png",
       "level": 4,
       "point": 0,
-      "evolution": {},
+      "evolution": null,
       "reward": {
         "ball_color": 2,
         "number": 2
@@ -2366,7 +2366,7 @@
       "src": "card_image/伊布.png",
       "level": 4,
       "point": 0,
-      "evolution": {},
+      "evolution": null,
       "reward": {
         "ball_color": 4,
         "number": 2
@@ -2394,7 +2394,7 @@
       "src": "card_image/超梦.png",
       "level": 5,
       "point": 2,
-      "evolution": {},
+      "evolution": null,
       "reward": {
         "ball_color": 4,
         "number": 2
@@ -2424,7 +2424,7 @@
       "src": "card_image/梦幻.png",
       "level": 5,
       "point": 2,
-      "evolution": {},
+      "evolution": null,
       "reward": {
         "ball_color": 2,
         "number": 2
@@ -2454,7 +2454,7 @@
       "src": "card_image/急冻鸟.png",
       "level": 5,
       "point": 2,
-      "evolution": {},
+      "evolution": null,
       "reward": {
         "ball_color": 3,
         "number": 2
@@ -2484,7 +2484,7 @@
       "src": "card_image/火焰鸟.png",
       "level": 5,
       "point": 2,
-      "evolution": {},
+      "evolution": null,
       "reward": {
         "ball_color": 1,
         "number": 2
@@ -2514,7 +2514,7 @@
       "src": "card_image/闪电鸟.png",
       "level": 5,
       "point": 2,
-      "evolution": {},
+      "evolution": null,
       "reward": {
         "ball_color": 0,
         "number": 2
