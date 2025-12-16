@@ -115,7 +115,7 @@ let cardLibraryPromise = null;
 
 function loadCardLibrary(){
   if (!cardLibraryPromise){
-    cardLibraryPromise = fetch("card.json").then(res => {
+    cardLibraryPromise = fetch("cards.json").then(res => {
       if (!res.ok) throw new Error("无法加载卡牌数据");
       return res.json();
     });
@@ -931,7 +931,7 @@ if (el.actEndTurn) el.actEndTurn.addEventListener("click", endTurn);
   }catch(err){
     console.error("加载游戏失败", err);
     if (el.currentPlayerBadge){
-      el.currentPlayerBadge.textContent = "资源加载失败，请检查 card.json";
+      el.currentPlayerBadge.textContent = "资源加载失败，请检查 cards.json";
     }
   }
 })();
