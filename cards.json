@@ -1382,5 +1382,185 @@
         "number": 1
       }
     ]
+  },
+  {
+    "name": "哈克龙",
+    "md5": "82094835ad3121cc0154701bac849905",
+    "src": "card_image/哈克龙1.png",
+    "level": 2,
+    "point": 3,
+    "evolution": {
+      "name": "快龙",
+      "cost": {
+        "ball_color": 3,
+        "number": 4
+      }
+    },
+    "reward": {
+      "ball_color": 4,
+      "number": 1
+    },
+    "cost": [
+      {
+        "ball_color": 2,
+        "number": 4
+      },
+      {
+        "ball_color": 1,
+        "number": 4
+      },
+      {
+        "ball_color": 3,
+        "number": 1
+      }
+    ]
+  },
+  {
+    "name": "哈克龙",
+    "md5": "c3080c158499bd4d37ad3dd326abdcb8",
+    "src": "card_image/哈克龙2.png",
+    "level": 2,
+    "point": 3,
+    "evolution": {
+      "name": "快龙",
+      "cost": {
+        "ball_color": 3,
+        "number": 4
+      }
+    },
+    "reward": {
+      "ball_color": 4,
+      "number": 1
+    },
+    "cost": [
+      {
+        "ball_color": 4,
+        "number": 6
+      }
+    ]
+  },
+  {
+    "name": "臭臭花",
+    "md5": "b581cec5d24ebc96b082ae629fb6b61d",
+    "src": "card_image/臭臭花1.png",
+    "level": 2,
+    "point": 1,
+    "evolution": {
+      "name": "霸王花",
+      "cost": {
+        "ball_color": 3,
+        "number": 4
+      }
+    },
+    "reward": {
+      "ball_color": 4,
+      "number": 1
+    },
+    "cost": [
+      {
+        "ball_color": 3,
+        "number": 3
+      },
+      {
+        "ball_color": 2,
+        "number": 2
+      },
+      {
+        "ball_color": 0,
+        "number": 2
+      }
+    ]
+  },
+  {
+    "name": "臭臭花",
+    "md5": "3d2fb8eae84a3ec9fd906732ed3527df",
+    "src": "card_image/臭臭花2.png",
+    "level": 2,
+    "point": 1,
+    "evolution": {
+      "name": "霸王花",
+      "cost": {
+        "ball_color": 3,
+        "number": 4
+      }
+    },
+    "reward": {
+      "ball_color": 4,
+      "number": 1
+    },
+    "cost": [
+      {
+        "ball_color": 4,
+        "number": 3
+      },
+      {
+        "ball_color": 2,
+        "number": 2
+      },
+      {
+        "ball_color": 0,
+        "number": 2
+      }
+    ]
+  },
+  {
+    "name": "铁壳蛹",
+    "md5": "b10ced2bce37c925445998e7b9ec2de6",
+    "src": "card_image/铁壳蛹1.png",
+    "level": 2,
+    "point": 2,
+    "evolution": {
+      "name": "大针蜂",
+      "cost": {
+        "ball_color": 1,
+        "number": 3
+      }
+    },
+    "reward": {
+      "ball_color": 4,
+      "number": 1
+    },
+    "cost": [
+      {
+        "ball_color": 4,
+        "number": 5
+      },
+      {
+        "ball_color": 3,
+        "number": 2
+      }
+    ]
+  },
+  {
+    "name": "铁壳蛹",
+    "md5": "bf14efecfa8b048d44d6a52d42e444e7",
+    "src": "card_image/铁壳蛹2.png",
+    "level": 2,
+    "point": 2,
+    "evolution": {
+      "name": "大针蜂",
+      "cost": {
+        "ball_color": 1,
+        "number": 3
+      }
+    },
+    "reward": {
+      "ball_color": 4,
+      "number": 1
+    },
+    "cost": [
+      {
+        "ball_color": 0,
+        "number": 4
+      },
+      {
+        "ball_color": 2,
+        "number": 2
+      },
+      {
+        "ball_color": 1,
+        "number": 1
+      }
+    ]
   }
 ]
