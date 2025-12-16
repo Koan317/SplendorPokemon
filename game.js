@@ -127,7 +127,7 @@ function loadCardLibrary(){
       .catch(err => {
         // 失败后允许重新尝试加载
         cardLibraryPromise = null;
-        lastLoadError = err?.message || "资源加载失败，请检查 cards.json";
+        lastLoadError = err?.message || "Failed to fetch";
         throw err;
       });
   }
@@ -701,7 +701,8 @@ function renderMarket(){
 
     const grid = document.createElement("div");
     grid.className = "market";
-    grid.style.gridTemplateColumns = `repeat(${group.slots}, minmax(0, 1fr))`;
+    grid.style.gridTemplateColumns = `repeat(${group.slots}, var(--card-w))`;
+    grid.style.gridAutoRows = "var(--card-h)";
 
     const cards = state.market.slotsByLevel[group.level] || [];
     for (let i=0; i<group.slots; i++){
@@ -717,7 +718,7 @@ function renderMarket(){
 function renderLoadHint(){
   if (!el.loadHint) return;
   if (lastLoadError){
-    el.loadHint.textContent = `资源加载失败，请检查 cards.json（${lastLoadError}）`;
+    el.loadHint.textContent = `资源加载失败：${lastLoadError || "Failed to fetch"}`;
     el.loadHint.classList.remove("hidden");
   } else {
     el.loadHint.classList.add("hidden");
@@ -961,9 +962,9 @@ if (el.actEndTurn) el.actEndTurn.addEventListener("click", endTurn);
     toast("已创建默认新游戏");
   }catch(err){
     console.error("加载游戏失败", err);
-    lastLoadError = err?.message || lastLoadError || "资源加载失败，请检查 cards.json";
+    lastLoadError = err?.message || lastLoadError || "Failed to fetch";
     if (el.currentPlayerBadge){
-      const hint = lastLoadError ? `资源加载失败：${lastLoadError}` : "资源加载失败，请检查 cards.json";
+      const hint = lastLoadError ? `资源加载失败：${lastLoadError}` : "资源加载失败：Failed to fetch";
       el.currentPlayerBadge.textContent = hint;
     }
     // 即使卡牌未加载成功，也尝试渲染现有 UI，方便用户看到错误提示
