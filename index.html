@@ -78,61 +78,19 @@
 
         <section class="table-area hotseat-table">
             <div class="center-area">
-                <div class="card-zones">
-
-                    <div class="level-stack">
-                        <div class="zone level-1">
-                            <div class="zone-head">
-                                <div class="deck level-1-back">Lv1</div>
-                                <div class="zone-note">基础探索，消耗较低</div>
-                            </div>
-                            <div class="display">
-                                <div class="slot"></div><div class="slot"></div>
-                                <div class="slot"></div><div class="slot"></div>
-                            </div>
+                <div class="market-panel" aria-label="展示区">
+                    <div class="panel-head">
+                        <div>
+                            <div class="panel-title">牌桌展示区</div>
+                            <div class="panel-sub">所有玩家共享，一键保留或购买</div>
                         </div>
-
-                        <div class="zone level-2">
-                            <div class="zone-head">
-                                <div class="deck level-2-back">Lv2</div>
-                                <div class="zone-note">中期主力，奖励更好</div>
-                            </div>
-                            <div class="display">
-                                <div class="slot"></div><div class="slot"></div>
-                                <div class="slot"></div><div class="slot"></div>
-                            </div>
-                        </div>
-
-                        <div class="zone level-3">
-                            <div class="zone-head">
-                                <div class="deck level-3-back">Lv3</div>
-                                <div class="zone-note">高分冲刺</div>
-                            </div>
-                            <div class="display">
-                                <div class="slot"></div><div class="slot"></div>
-                                <div class="slot"></div><div class="slot"></div>
-                            </div>
+                        <div class="panel-badges">
+                            <span class="badge" id="turnBadge">回合：1</span>
+                            <span class="badge" id="currentPlayerBadge">当前玩家：玩家 1</span>
+                            <span class="badge" id="trophyBadge">当前玩家奖杯：0</span>
                         </div>
                     </div>
-
-                    <div class="special-stack">
-                        <div class="zone rare">
-                            <div class="zone-head">
-                                <div class="deck rare-back">稀有</div>
-                                <div class="zone-note">特殊能力 / 小目标</div>
-                            </div>
-                            <div class="display"><div class="slot"></div></div>
-                        </div>
-
-                        <div class="zone legend">
-                            <div class="zone-head">
-                                <div class="deck legend-back">传说</div>
-                                <div class="zone-note">终局胜利点</div>
-                            </div>
-                            <div class="display"><div class="slot"></div></div>
-                        </div>
-                    </div>
-
+                    <div id="market" class="market-grid" aria-live="polite"></div>
                 </div>
 
                 <div class="token-zone">
@@ -170,6 +128,16 @@
 
                 <div class="dash-footer">热坐提示：操作完毕点击“结束回合”，然后把座位让给下一位。</div>
             </aside>
+        </section>
+
+        <section class="player-showcase" aria-label="玩家公开信息">
+            <div class="showcase-head">
+                <div>
+                    <div class="panel-title">玩家公开信息</div>
+                    <div class="panel-sub">所有玩家的手牌、保留卡与 Token 持续可见，方便热坐协作</div>
+                </div>
+            </div>
+            <div id="players" class="player-grid" aria-live="polite"></div>
         </section>
     </main>
 
