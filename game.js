@@ -35,6 +35,7 @@ const $ = (sel) => document.querySelector(sel);
 const el = {
   tokenPool: $("#tokenPool"),
   market: $("#market"),
+  loadHint: $("#loadHint"),
   players: $("#players"),
 
   playerCount: $("#playerCount"),
@@ -112,19 +113,21 @@ function makeEmptyState(){
 
 // ========== 4) 卡牌数据：真实 cards ==========
 let cardLibraryPromise = null;
+let lastLoadError = null;
 
 function loadCardLibrary(){
   if (!cardLibraryPromise){
     const url = new URL("cards.json", window.location.href).toString();
 
-    cardLibraryPromise = fetch(url, { cache: "no-cache" })
+    cardLibraryPromise = fetch(url, { cache: "no-store", headers: { "Accept": "application/json" } })
       .then(res => {
-        if (!res.ok) throw new Error(`无法加载卡牌数据（${res.status}）`);
+        if (!res.ok) throw new Error(`cards.json 加载失败（${res.status}）`);
         return res.json();
       })
       .catch(err => {
         // 失败后允许重新尝试加载
         cardLibraryPromise = null;
+        lastLoadError = err?.message || "资源加载失败，请检查 cards.json";
         throw err;
       });
   }
@@ -152,6 +155,7 @@ function buildDecksFromLibrary(lib){
 // ========== 5) 新游戏初始化 ==========
 async function newGame(playerCount){
   const lib = await loadCardLibrary();
+  lastLoadError = null;
   state = makeEmptyState();
 
   // token pool 按人数调整（按你规则）
@@ -624,10 +628,17 @@ function renderAll(){
   renderMarket();
   renderPlayers();
   renderBadges();
+  renderLoadHint();
 }
 
 function renderBadges(){
   if (!el.turnBadge || !el.currentPlayerBadge || !el.trophyBadge) return;
+  if (lastLoadError){
+    el.currentPlayerBadge.textContent = `资源加载失败：${lastLoadError}`;
+    el.turnBadge.textContent = "回合：-";
+    el.trophyBadge.textContent = "当前玩家奖杯：0";
+    return;
+  }
   const p = state.players[state.currentPlayerIndex];
   el.turnBadge.textContent = `回合：${state.turn}`;
   el.currentPlayerBadge.textContent = p ? `当前玩家：${p.name}` : "当前玩家";
@@ -700,6 +711,17 @@ function renderMarket(){
 
     section.appendChild(grid);
     el.market.appendChild(section);
+  }
+}
+
+function renderLoadHint(){
+  if (!el.loadHint) return;
+  if (lastLoadError){
+    el.loadHint.textContent = `资源加载失败，请检查 cards.json（${lastLoadError}）`;
+    el.loadHint.classList.remove("hidden");
+  } else {
+    el.loadHint.classList.add("hidden");
+    el.loadHint.textContent = "";
   }
 }
 
@@ -939,8 +961,9 @@ if (el.actEndTurn) el.actEndTurn.addEventListener("click", endTurn);
     toast("已创建默认新游戏");
   }catch(err){
     console.error("加载游戏失败", err);
+    lastLoadError = err?.message || lastLoadError || "资源加载失败，请检查 cards.json";
     if (el.currentPlayerBadge){
-      const hint = err?.message ? `资源加载失败：${err.message}` : "资源加载失败，请检查 cards.json";
+      const hint = lastLoadError ? `资源加载失败：${lastLoadError}` : "资源加载失败，请检查 cards.json";
       el.currentPlayerBadge.textContent = hint;
     }
     // 即使卡牌未加载成功，也尝试渲染现有 UI，方便用户看到错误提示
