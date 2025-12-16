@@ -1202,5 +1202,185 @@
         "number": 6
       }
     ]
+  },
+  {
+    "name": "卡咪龟",
+    "md5": "644378214a92a8692bbab40d4d78eba0",
+    "src": "card_image/卡咪龟1",
+    "level": 2,
+    "point": 3,
+    "evolution": {
+      "name": "水箭龟",
+      "cost": {
+        "ball_color": 1,
+        "number": 4
+      }
+    },
+    "reward": {
+      "ball_color": 0,
+      "number": 1
+    },
+    "cost": [
+      {
+        "ball_color": 2,
+        "number": 4
+      },
+      {
+        "ball_color": 4,
+        "number": 4
+      },
+      {
+        "ball_color": 1,
+        "number": 1
+      }
+    ]
+  },
+  {
+    "name": "卡咪龟",
+    "md5": "c7cb04122da707cf746cabedd5d94ff0",
+    "src": "card_image/卡咪龟2",
+    "level": 2,
+    "point": 3,
+    "evolution": {
+      "name": "水箭龟",
+      "cost": {
+        "ball_color": 1,
+        "number": 4
+      }
+    },
+    "reward": {
+      "ball_color": 0,
+      "number": 1
+    },
+    "cost": [
+      {
+        "ball_color": 0,
+        "number": 6
+      }
+    ]
+  },
+  {
+    "name": "口呆花",
+    "md5": "6239349a0cc40dda892bfc68c2796420",
+    "src": "card_image/口呆花1",
+    "level": 2,
+    "point": 1,
+    "evolution": {
+      "name": "大食花",
+      "cost": {
+        "ball_color": 1,
+        "number": 4
+      }
+    },
+    "reward": {
+      "ball_color": 0,
+      "number": 1
+    },
+    "cost": [
+      {
+        "ball_color": 1,
+        "number": 3
+      },
+      {
+        "ball_color": 3,
+        "number": 2
+      },
+      {
+        "ball_color": 4,
+        "number": 2
+      }
+    ]
+  },
+  {
+    "name": "口呆花",
+    "md5": "9da8f40141c39a61c570434b5a2104b6",
+    "src": "card_image/口呆花2",
+    "level": 2,
+    "point": 1,
+    "evolution": {
+      "name": "大食花",
+      "cost": {
+        "ball_color": 1,
+        "number": 4
+      }
+    },
+    "reward": {
+      "ball_color": 0,
+      "number": 1
+    },
+    "cost": [
+      {
+        "ball_color": 0,
+        "number": 3
+      },
+      {
+        "ball_color": 4,
+        "number": 2
+      },
+      {
+        "ball_color": 3,
+        "number": 2
+      }
+    ]
+  },
+  {
+    "name": "豪力",
+    "md5": "56d9bdf3dde3f3731b55ce9e85572689",
+    "src": "card_image/豪力1",
+    "level": 2,
+    "point": 2,
+    "evolution": {
+      "name": "怪力",
+      "cost": {
+        "ball_color": 2,
+        "number": 3
+      }
+    },
+    "reward": {
+      "ball_color": 0,
+      "number": 1
+    },
+    "cost": [
+      {
+        "ball_color": 0,
+        "number": 5
+      },
+      {
+        "ball_color": 1,
+        "number": 2
+      }
+    ]
+  },
+  {
+    "name": "豪力",
+    "md5": "59e3b9c57f23588b99e8d02ef4eff783",
+    "src": "card_image/豪力2",
+    "level": 2,
+    "point": 2,
+    "evolution": {
+      "name": "怪力",
+      "cost": {
+        "ball_color": 2,
+        "number": 3
+      }
+    },
+    "reward": {
+      "ball_color": 0,
+      "number": 1
+    },
+    "cost": [
+      {
+        "ball_color": 3,
+        "number": 4
+      },
+      {
+        "ball_color": 4,
+        "number": 2
+      },
+      {
+        "ball_color": 2,
+        "number": 1
+      }
+    ]
   }
 ]
