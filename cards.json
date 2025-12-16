@@ -26,7 +26,7 @@
   {
     "name": "独角虫",
     "md5": "a5caa846b0b786cea56ca644db83fbfd",
-    "src": "card_image/独角虫1",
+    "src": "card_image/独角虫1.png",
     "level": 1,
     "point": 0,
     "evolution": {
@@ -62,7 +62,7 @@
   {
     "name": "独角虫",
     "md5": "b8eec5c31eba72e1f2f39feb57f2fb51",
-    "src": "card_image/独角虫2",
+    "src": "card_image/独角虫2.png",
     "level": 1,
     "point": 0,
     "evolution": {
@@ -94,7 +94,7 @@
   {
     "name": "走路草",
     "md5": "dd6b24123374bb298ebf036185d067c5",
-    "src": "card_image/走路草1",
+    "src": "card_image/走路草1.png",
     "level": 1,
     "point": 0,
     "evolution": {
@@ -118,7 +118,7 @@
   {
     "name": "走路草",
     "md5": "142706161cb47b943c9d22c8e8dbb0bc",
-    "src": "card_image/走路草2",
+    "src": "card_image/走路草2.png",
     "level": 1,
     "point": 0,
     "evolution": {
@@ -146,7 +146,7 @@
   {
     "name": "走路草",
     "md5": "f1bed3038cc212b356b183a232ad478c",
-    "src": "card_image/走路草3",
+    "src": "card_image/走路草3.png",
     "level": 1,
     "point": 0,
     "evolution": {
@@ -174,7 +174,7 @@
   {
     "name": "迷你龙",
     "md5": "3fe12a7cd5e03c1ca6290a11e7056b61",
-    "src": "card_image/迷你龙1",
+    "src": "card_image/迷你龙1.png",
     "level": 1,
     "point": 1,
     "evolution": {
@@ -202,7 +202,7 @@
   {
     "name": "迷你龙",
     "md5": "4aaf12c3dc52a9ebe7eb5ac746b3d7f1",
-    "src": "card_image/迷你龙2",
+    "src": "card_image/迷你龙2.png",
     "level": 1,
     "point": 1,
     "evolution": {
@@ -226,7 +226,7 @@
   {
     "name": "鬼斯",
     "md5": "59c6af5328a651ff293b9fa1e873d7a0",
-    "src": "card_image/鬼斯1",
+    "src": "card_image/鬼斯1.png",
     "level": 1,
     "point": 0,
     "evolution": {
@@ -262,7 +262,7 @@
   {
     "name": "鬼斯",
     "md5": "7324da966f473160974e1c8ae29e7631",
-    "src": "card_image/鬼斯2",
+    "src": "card_image/鬼斯2.png",
     "level": 1,
     "point": 0,
     "evolution": {
@@ -294,7 +294,7 @@
   {
     "name": "妙蛙种子",
     "md5": "e8c7d327d22c0e975d098aafcb38ee91",
-    "src": "card_image/妙蛙种子1",
+    "src": "card_image/妙蛙种子1.png",
     "level": 1,
     "point": 1,
     "evolution": {
@@ -322,7 +322,7 @@
   {
     "name": "妙蛙种子",
     "md5": "9a2e527f8adc8b773906389b2513ae70",
-    "src": "card_image/妙蛙种子2",
+    "src": "card_image/妙蛙种子2.png",
     "level": 1,
     "point": 1,
     "evolution": {
@@ -346,7 +346,7 @@
   {
     "name": "尼多兰",
     "md5": "ebdace300ce255f7114d4080b19ff289",
-    "src": "card_image/尼多兰1",
+    "src": "card_image/尼多兰1.png",
     "level": 1,
     "point": 0,
     "evolution": {
@@ -370,7 +370,7 @@
   {
     "name": "尼多兰",
     "md5": "5ba8641d8504c83f2ddcc6c6c2a7123c",
-    "src": "card_image/尼多兰2",
+    "src": "card_image/尼多兰2.png",
     "level": 1,
     "point": 0,
     "evolution": {
@@ -398,7 +398,7 @@
   {
     "name": "尼多兰",
     "md5": "5645aecd0d8be81ef93160e23eed13d4",
-    "src": "card_image/尼多兰3",
+    "src": "card_image/尼多兰3.png",
     "level": 1,
     "point": 0,
     "evolution": {
@@ -426,7 +426,7 @@
   {
     "name": "蚊香蝌蚪",
     "md5": "93c71bea16dfd48fbc5836a8c5861f85",
-    "src": "card_image/蚊香蝌蚪1",
+    "src": "card_image/蚊香蝌蚪1.png",
     "level": 1,
     "point": 0,
     "evolution": {
@@ -454,7 +454,7 @@
   {
     "name": "蚊香蝌蚪",
     "md5": "b99fa9bc11661ef83ade716222b66931",
-    "src": "card_image/蚊香蝌蚪2",
+    "src": "card_image/蚊香蝌蚪2.png",
     "level": 1,
     "point": 0,
     "evolution": {
@@ -482,7 +482,7 @@
   {
     "name": "蚊香蝌蚪",
     "md5": "02ef49b74b7100647c00375cf7a1ca60",
-    "src": "card_image/蚊香蝌蚪3",
+    "src": "card_image/蚊香蝌蚪3.png",
     "level": 1,
     "point": 0,
     "evolution": {
@@ -506,7 +506,7 @@
   {
     "name": "凯西",
     "md5": "f8c2245dd1ce8b9643094e19ee9d2c76",
-    "src": "card_image/凯西1",
+    "src": "card_image/凯西1.png",
     "level": 1,
     "point": 1,
     "evolution": {
@@ -530,7 +530,7 @@
   {
     "name": "凯西",
     "md5": "3eb0c58907a6f99d3313d00cf07f2b21",
-    "src": "card_image/凯西2",
+    "src": "card_image/凯西2.png",
     "level": 1,
     "point": 1,
     "evolution": {
@@ -558,7 +558,7 @@
   {
     "name": "绿毛虫",
     "md5": "8acc2e839def4386af5ca3df6a3321c4",
-    "src": "card_image/绿毛虫1",
+    "src": "card_image/绿毛虫1.png",
     "level": 1,
     "point": 0,
     "evolution": {
@@ -594,7 +594,7 @@
   {
     "name": "绿毛虫",
     "md5": "d8756b67c7d8583f554f2b483a1f01ae",
-    "src": "card_image/绿毛虫2",
+    "src": "card_image/绿毛虫2.png",
     "level": 1,
     "point": 0,
     "evolution": {
@@ -626,7 +626,7 @@
   {
     "name": "喇叭芽",
     "md5": "921de02305b2d4bc6d6e95e10e930921",
-    "src": "card_image/喇叭芽1",
+    "src": "card_image/喇叭芽1.png",
     "level": 1,
     "point": 0,
     "evolution": {
@@ -654,7 +654,7 @@
   {
     "name": "喇叭芽",
     "md5": "cfd65822d28f7e4ab0c3a1ae8d1ed104",
-    "src": "card_image/喇叭芽2",
+    "src": "card_image/喇叭芽2.png",
     "level": 1,
     "point": 0,
     "evolution": {
@@ -678,7 +678,7 @@
   {
     "name": "喇叭芽",
     "md5": "a4866007dccf70cc9b61d19a3a8c2575",
-    "src": "card_image/喇叭芽3",
+    "src": "card_image/喇叭芽3.png",
     "level": 1,
     "point": 0,
     "evolution": {
@@ -706,7 +706,7 @@
   {
     "name": "杰尼龟",
     "md5": "30068dca4aec4dfe00a83af5ec4c1ff5",
-    "src": "card_image/杰尼龟1",
+    "src": "card_image/杰尼龟1.png",
     "level": 1,
     "point": 1,
     "evolution": {
@@ -730,7 +730,7 @@
   {
     "name": "杰尼龟",
     "md5": "30493d6bdff98105cea8bb0e180d4ba9",
-    "src": "card_image/杰尼龟2",
+    "src": "card_image/杰尼龟2.png",
     "level": 1,
     "point": 1,
     "evolution": {
@@ -758,7 +758,7 @@
   {
     "name": "腕力",
     "md5": "6f988c40d620280aa5d49a43bb673aa8",
-    "src": "card_image/腕力1",
+    "src": "card_image/腕力1.png",
     "level": 1,
     "point": 0,
     "evolution": {
@@ -794,7 +794,7 @@
   {
     "name": "腕力",
     "md5": "3eae22cfc75cd1dfebfb81e04ff6e7f5",
-    "src": "card_image/腕力2",
+    "src": "card_image/腕力2.png",
     "level": 1,
     "point": 0,
     "evolution": {
@@ -826,7 +826,7 @@
   {
     "name": "波波",
     "md5": "375c3e68f8790e944ff2bd8efae66e2a",
-    "src": "card_image/波波1",
+    "src": "card_image/波波1.png",
     "level": 1,
     "point": 0,
     "evolution": {
@@ -854,7 +854,7 @@
   {
     "name": "波波",
     "md5": "e3f390bd7332b8353977fe338921b29d",
-    "src": "card_image/波波2",
+    "src": "card_image/波波2.png",
     "level": 1,
     "point": 0,
     "evolution": {
@@ -878,7 +878,7 @@
   {
     "name": "波波",
     "md5": "7d25f71a0c3e11737b0fe45575928ccc",
-    "src": "card_image/波波3",
+    "src": "card_image/波波3.png",
     "level": 1,
     "point": 0,
     "evolution": {
@@ -906,7 +906,7 @@
   {
     "name": "小火龙",
     "md5": "f8b10841f2dfcf53430b6476ad0ed27b",
-    "src": "card_image/小火龙1",
+    "src": "card_image/小火龙1.png",
     "level": 1,
     "point": 1,
     "evolution": {
@@ -930,7 +930,7 @@
   {
     "name": "小火龙",
     "md5": "4472e711a9c3fe8dd2808224ebfe1481",
-    "src": "card_image/小火龙2",
+    "src": "card_image/小火龙2.png",
     "level": 1,
     "point": 1,
     "evolution": {
@@ -958,7 +958,7 @@
   {
     "name": "小拳石",
     "md5": "b3ba406cc25f01816da23e6dd0f2bc27",
-    "src": "card_image/小拳石1",
+    "src": "card_image/小拳石1.png",
     "level": 1,
     "point": 0,
     "evolution": {
@@ -990,7 +990,7 @@
   {
     "name": "小拳石",
     "md5": "044e5209b8a22443f965eb8ac0ee9948",
-    "src": "card_image/小拳石2",
+    "src": "card_image/小拳石2.png",
     "level": 1,
     "point": 0,
     "evolution": {
@@ -1026,7 +1026,7 @@
   {
     "name": "隆隆石",
     "md5": "8caa16ae6a05166fec5efbb81a643372",
-    "src": "card_image/隆隆石1",
+    "src": "card_image/隆隆石1.png",
     "level": 2,
     "point": 2,
     "evolution": {
@@ -1058,7 +1058,7 @@
   {
     "name": "隆隆石",
     "md5": "898b4670abf208fcf15e5cfc03ac35fc",
-    "src": "card_image/隆隆石2",
+    "src": "card_image/隆隆石2.png",
     "level": 2,
     "point": 2,
     "evolution": {
@@ -1086,7 +1086,7 @@
   {
     "name": "比比鸟",
     "md5": "df0864d7e48442c1b0ed0bdafe9dbc80",
-    "src": "card_image/比比鸟1",
+    "src": "card_image/比比鸟1.png",
     "level": 2,
     "point": 1,
     "evolution": {
@@ -1118,7 +1118,7 @@
   {
     "name": "比比鸟",
     "md5": "49299d5e1f900da199b701f0c1e43e5b",
-    "src": "card_image/比比鸟2",
+    "src": "card_image/比比鸟2.png",
     "level": 2,
     "point": 1,
     "evolution": {
@@ -1150,7 +1150,7 @@
   {
     "name": "火恐龙",
     "md5": "f2d4efdec0937f407112ae4ea3714e48",
-    "src": "card_image/火恐龙1",
+    "src": "card_image/火恐龙1.png",
     "level": 2,
     "point": 3,
     "evolution": {
@@ -1182,7 +1182,7 @@
   {
     "name": "火恐龙",
     "md5": "89c77eb672f1115ce02d19f4a48a9968",
-    "src": "card_image/火恐龙2",
+    "src": "card_image/火恐龙2.png",
     "level": 2,
     "point": 3,
     "evolution": {
@@ -1206,7 +1206,7 @@
   {
     "name": "卡咪龟",
     "md5": "644378214a92a8692bbab40d4d78eba0",
-    "src": "card_image/卡咪龟1",
+    "src": "card_image/卡咪龟1.png",
     "level": 2,
     "point": 3,
     "evolution": {
@@ -1238,7 +1238,7 @@
   {
     "name": "卡咪龟",
     "md5": "c7cb04122da707cf746cabedd5d94ff0",
-    "src": "card_image/卡咪龟2",
+    "src": "card_image/卡咪龟2.png",
     "level": 2,
     "point": 3,
     "evolution": {
@@ -1262,7 +1262,7 @@
   {
     "name": "口呆花",
     "md5": "6239349a0cc40dda892bfc68c2796420",
-    "src": "card_image/口呆花1",
+    "src": "card_image/口呆花1.png",
     "level": 2,
     "point": 1,
     "evolution": {
@@ -1294,7 +1294,7 @@
   {
     "name": "口呆花",
     "md5": "9da8f40141c39a61c570434b5a2104b6",
-    "src": "card_image/口呆花2",
+    "src": "card_image/口呆花2.png",
     "level": 2,
     "point": 1,
     "evolution": {
@@ -1326,7 +1326,7 @@
   {
     "name": "豪力",
     "md5": "56d9bdf3dde3f3731b55ce9e85572689",
-    "src": "card_image/豪力1",
+    "src": "card_image/豪力1.png",
     "level": 2,
     "point": 2,
     "evolution": {
@@ -1354,7 +1354,7 @@
   {
     "name": "豪力",
     "md5": "59e3b9c57f23588b99e8d02ef4eff783",
-    "src": "card_image/豪力2",
+    "src": "card_image/豪力2.png",
     "level": 2,
     "point": 2,
     "evolution": {
