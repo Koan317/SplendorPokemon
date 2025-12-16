@@ -1742,5 +1742,185 @@
         "number": 1
       }
     ]
+  },
+  {
+    "name": "蚊香君",
+    "md5": "49c9c96f547f475c02a14b4e8d314239",
+    "src": "card_image/蚊香君1.png",
+    "level": 2,
+    "point": 1,
+    "evolution": {
+      "name": "蚊香泳士",
+      "cost": {
+        "ball_color": 4,
+        "number": 4
+      }
+    },
+    "reward": {
+      "ball_color": 1,
+      "number": 1
+    },
+    "cost": [
+      {
+        "ball_color": 1,
+        "number": 3
+      },
+      {
+        "ball_color": 2,
+        "number": 2
+      },
+      {
+        "ball_color": 3,
+        "number": 2
+      }
+    ]
+  },
+  {
+    "name": "蚊香君",
+    "md5": "ae996f16e08f1058307916929cf44d05",
+    "src": "card_image/蚊香君2.png",
+    "level": 2,
+    "point": 1,
+    "evolution": {
+      "name": "蚊香泳士",
+      "cost": {
+        "ball_color": 4,
+        "number": 4
+      }
+    },
+    "reward": {
+      "ball_color": 1,
+      "number": 1
+    },
+    "cost": [
+      {
+        "ball_color": 4,
+        "number": 3
+      },
+      {
+        "ball_color": 2,
+        "number": 2
+      },
+      {
+        "ball_color": 0,
+        "number": 2
+      }
+    ]
+  },
+  {
+    "name": "铁甲蛹",
+    "md5": "d7d2698af58c17a50ea8abefb8d3d775",
+    "src": "card_image/铁甲蛹1.png",
+    "level": 2,
+    "point": 2,
+    "evolution": {
+      "name": "巴大蝶",
+      "cost": {
+        "ball_color": 3,
+        "number": 3
+      }
+    },
+    "reward": {
+      "ball_color": 1,
+      "number": 1
+    },
+    "cost": [
+      {
+        "ball_color": 1,
+        "number": 5
+      },
+      {
+        "ball_color": 4,
+        "number": 2
+      }
+    ]
+  },
+  {
+    "name": "铁甲蛹",
+    "md5": "eeaf438ae853dfa029f4d1f060f7c124",
+    "src": "card_image/铁甲蛹2.png",
+    "level": 2,
+    "point": 2,
+    "evolution": {
+      "name": "巴大蝶",
+      "cost": {
+        "ball_color": 3,
+        "number": 3
+      }
+    },
+    "reward": {
+      "ball_color": 1,
+      "number": 1
+    },
+    "cost": [
+      {
+        "ball_color": 2,
+        "number": 4
+      },
+      {
+        "ball_color": 0,
+        "number": 2
+      },
+      {
+        "ball_color": 3,
+        "number": 1
+      }
+    ]
+  },
+  {
+    "name": "勇基拉",
+    "md5": "234ab50871abfca548ac634ded226325",
+    "src": "card_image/勇基拉1.png",
+    "level": 2,
+    "point": 3,
+    "evolution": {
+      "name": "胡地",
+      "cost": {
+        "ball_color": 4,
+        "number": 4
+      }
+    },
+    "reward": {
+      "ball_color": 1,
+      "number": 1
+    },
+    "cost": [
+      {
+        "ball_color": 0,
+        "number": 4
+      },
+      {
+        "ball_color": 3,
+        "number": 4
+      },
+      {
+        "ball_color": 4,
+        "number": 1
+      }
+    ]
+  },
+  {
+    "name": "勇基拉",
+    "md5": "5e75c20cecdd60c3cac39d6dc1bacbb3",
+    "src": "card_image/勇基拉2.png",
+    "level": 2,
+    "point": 3,
+    "evolution": {
+      "name": "胡地",
+      "cost": {
+        "ball_color": 4,
+        "number": 4
+      }
+    },
+    "reward": {
+      "ball_color": 1,
+      "number": 1
+    },
+    "cost": [
+      {
+        "ball_color": 1,
+        "number": 6
+      }
+    ]
   }
 ]
