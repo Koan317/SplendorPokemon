@@ -48,6 +48,8 @@ const el = {
   actBuy: $("#actBuy"),
   actEvolve: $("#actEvolve"),
   actEndTurn: $("#actEndTurn"),
+
+  ruleHelper: document.querySelector("#ruleHelper"),
 };
 
 // ========== 3) 游戏状态（存档核心） ==========
@@ -63,6 +65,41 @@ let ui = {
   selectedMarketCardId: null,     // for reserve/buy
   selectedReservedCard: null,     // {playerIndex, cardId}
 };
+
+function ensureRuleHelper(){
+  if (el.ruleHelper) return;
+
+  const helper = document.createElement("aside");
+  helper.id = "ruleHelper";
+  helper.innerHTML = `
+    <header>
+      <div class="title">行动速查</div>
+      <div class="desc">遵循实体规则：拿宝石、保留、购买、进化、换牌。</div>
+    </header>
+    <ol class="rules">
+      <li><strong>拿取 3 种不同颜色</strong>：从有存货的颜色中各拿 1。</li>
+      <li><strong>拿取 2 个同色</strong>：仅当该色供应 ≥ 4。</li>
+      <li><strong>保留一张牌</strong>：带 1 颗大师球（若供应充足），手牌上限 3。</li>
+      <li><strong>购买/捕捉</strong>：支付对应颜色，紫球可当万能补差。</li>
+      <li><strong>替换展示区</strong>：弃 1 张展示卡并立即补充。</li>
+    </ol>
+    <div class="availability"></div>
+  `;
+  document.body.appendChild(helper);
+  el.ruleHelper = helper;
+  renderRuleHelperAvailability();
+}
+
+function renderRuleHelperAvailability(){
+  if (!el.ruleHelper) return;
+  const box = el.ruleHelper.querySelector(".availability");
+  if (!box) return;
+  const availColors = state.tokenPool
+    .map((v, idx) => ({ v, idx }))
+    .filter(({ v }) => v > 0)
+    .map(({ v, idx }) => `${BALL_NAMES[idx]}×${v}`);
+  box.textContent = `可用宝石：${availColors.join("，") || "全部耗尽"}`;
+}
 
 function makeEmptyState(){
   return {
@@ -524,6 +561,7 @@ function importSaveFile(file){
 
 // ========== 10) 渲染 ==========
 function renderAll(){
+  ensureRuleHelper();
   renderTokenPool();
   renderMarket();
   renderPlayers();
@@ -531,12 +569,14 @@ function renderAll(){
 }
 
 function renderBadges(){
+  if (!el.turnBadge || !el.currentPlayerBadge || !el.trophyBadge) return;
   el.turnBadge.textContent = `回合：${state.turn}`;
   el.currentPlayerBadge.textContent = `当前玩家：${currentPlayer().name}`;
   el.trophyBadge.textContent = `当前玩家奖杯：${totalTrophiesOfPlayer(currentPlayer())}`;
 }
 
 function renderTokenPool(){
+  if (!el.tokenPool) return;
   el.tokenPool.innerHTML = "";
   for (let c=0;c<6;c++){
     const btn = document.createElement("div");
@@ -556,17 +596,29 @@ function renderTokenPool(){
     btn.appendChild(count);
 
     btn.addEventListener("click", () => {
-      // toggle selection
-      if (ui.selectedTokenColors.has(c)) ui.selectedTokenColors.delete(c);
-      else ui.selectedTokenColors.add(c);
+      if (state.tokenPool[c] <= 0){
+        toast("该颜色供应区已空，无法选择");
+        return;
+      }
+      // toggle selection，保证最多 3 个不同颜色
+      if (ui.selectedTokenColors.has(c)){
+        ui.selectedTokenColors.delete(c);
+      } else if (ui.selectedTokenColors.size < 3){
+        ui.selectedTokenColors.add(c);
+      } else {
+        toast("一次拿取最多 3 种不同颜色");
+      }
       renderTokenPool();
+      renderRuleHelperAvailability();
     });
 
     el.tokenPool.appendChild(btn);
   }
+  renderRuleHelperAvailability();
 }
 
 function renderMarket(){
+  if (!el.market) return;
   el.market.innerHTML = "";
   for (const card of state.market.slots){
     const div = document.createElement("div");
@@ -611,6 +663,7 @@ function renderMarket(){
 }
 
 function renderPlayers(){
+  if (!el.players) return;
   el.players.innerHTML = "";
   state.players.forEach((p, idx) => {
     const wrap = document.createElement("div");
@@ -799,6 +852,8 @@ function clearSelections(){
 function toast(msg){
   // 简易 toast：用 badge 闪一下
   console.log("[toast]", msg);
+  if (!el.currentPlayerBadge) return;
+
   el.currentPlayerBadge.textContent = msg;
 
   el.currentPlayerBadge.style.borderColor = "rgba(34,197,94,0.45)";
