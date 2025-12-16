@@ -676,10 +676,8 @@ function renderMarket(){
     const section = document.createElement("div");
     section.className = "market-section";
 
-    const deck = document.createElement("div");
     const remain = state.decks[levelKey(group.level)]?.length || 0;
-    deck.className = `deck ${group.deckClass}` + (remain === 0 ? " ghost" : "");
-    section.appendChild(deck);
+    section.appendChild(renderDeckIndicator(group.deckClass, remain));
 
     const grid = document.createElement("div");
     grid.className = "market";
@@ -688,21 +686,37 @@ function renderMarket(){
     const cards = state.market.slotsByLevel[group.level] || [];
     for (let i=0; i<group.slots; i++){
       const card = cards[i];
-      if (card){
-        grid.appendChild(renderMarketCard(card));
-      } else {
-        const placeholder = document.createElement("div");
-        placeholder.className = "market-card placeholder";
-        const visual = document.createElement("div");
-        visual.className = "market-visual";
-        placeholder.appendChild(visual);
-        grid.appendChild(placeholder);
-      }
+      grid.appendChild(card ? renderMarketCard(card) : renderBackPlaceholder(group.deckClass, remain === 0));
     }
 
     section.appendChild(grid);
     el.market.appendChild(section);
   }
+}
+
+function renderDeckIndicator(deckClass, remain){
+  const deck = document.createElement("div");
+  deck.className = `deck-indicator ${deckClass}` + (remain === 0 ? " ghost" : "");
+
+  const back = document.createElement("div");
+  back.className = `card-back ${deckClass}`;
+  deck.appendChild(back);
+  return deck;
+}
+
+function renderBackPlaceholder(deckClass, isGhost){
+  const placeholder = document.createElement("div");
+  placeholder.className = "market-card back" + (isGhost ? " ghost" : "");
+
+  const visual = document.createElement("div");
+  visual.className = "market-visual";
+
+  const back = document.createElement("div");
+  back.className = `card-back ${deckClass}`;
+  visual.appendChild(back);
+
+  placeholder.appendChild(visual);
+  return placeholder;
 }
 
 function renderMarketCard(card){
@@ -901,18 +915,25 @@ if (el.actEndTurn) el.actEndTurn.addEventListener("click", endTurn);
 
 // ========== 12) 启动 ==========
 (async function boot(){
-  await loadCardLibrary();
-  // 自动尝试读档；没有就开新局
-  const raw = localStorage.getItem(STORAGE_KEY);
-  if (raw){
-    try{
-      applySavePayload(JSON.parse(raw));
-      toast("已自动读取本地存档");
-      return;
-    }catch{}
+  try{
+    await loadCardLibrary();
+    // 自动尝试读档；没有就开新局
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (raw){
+      try{
+        applySavePayload(JSON.parse(raw));
+        toast("已自动读取本地存档");
+        return;
+      }catch{}
+    }
+    await newGame(Number(el.playerCount.value));
+    toast("已创建默认新游戏");
+  }catch(err){
+    console.error("加载游戏失败", err);
+    if (el.currentPlayerBadge){
+      el.currentPlayerBadge.textContent = "资源加载失败，请检查 card.json";
+    }
   }
-  await newGame(Number(el.playerCount.value));
-  toast("已创建默认新游戏");
 })();
 
 // ========== 13) 工具 ==========

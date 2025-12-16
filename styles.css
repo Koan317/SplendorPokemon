@@ -117,31 +117,6 @@ body {
     height: 100%;
 }
 
-.deck {
-    width: var(--card-w);
-    aspect-ratio: 652 / 1020;
-    border: 2px solid var(--line);
-    border-radius: 12px;
-    display: grid;
-    place-items: center;
-    background-size: cover;
-    background-position: center;
-    position: relative;
-    overflow: hidden;
-}
-.deck::after {
-    content: "";
-    position: absolute;
-    inset: 0;
-    background: linear-gradient(180deg, rgba(0,0,0,0.1) 0%, rgba(0,0,0,0.45) 100%);
-}
-.deck.level-1-back { background-image: url('card_image/level_1.png'); }
-.deck.level-2-back { background-image: url('card_image/level_2.png'); }
-.deck.level-3-back { background-image: url('card_image/level_3.png'); }
-.deck.rare-back { background-image: url('card_image/rare.png'); }
-.deck.legend-back { background-image: url('card_image/legend.png'); }
-.deck.ghost { opacity: 0.35; }
-
 .market-panel, .token-panel {
     background: rgba(10, 12, 20, 0.55);
     border: 1px solid rgba(148, 163, 184, 0.25);
@@ -165,10 +140,10 @@ body {
 }
 
 .market-section {
-    display: grid;
-    grid-template-columns: auto 1fr;
+    display: flex;
+    flex-direction: column;
     gap: 6px;
-    align-items: start;
+    align-items: stretch;
     min-height: 0;
 }
 
@@ -193,8 +168,6 @@ body {
 }
 .market-card:hover { transform: translateY(-2px); box-shadow: 0 8px 18px rgba(0,0,0,0.35); }
 .market-card.selected { border-color: rgba(94, 234, 212, 0.65); box-shadow: 0 0 0 2px rgba(34, 197, 94, 0.35); }
-.market-card.placeholder { background: rgba(15, 23, 42, 0.55); border-style: dashed; cursor: default; }
-
 .market-visual {
     width: 100%;
     aspect-ratio: 652 / 1020;
@@ -209,7 +182,46 @@ body {
     object-fit: contain;
 }
 
-.market-meta, .market-name, .market-tags, .market-cost, .cost-chip { display: none; }
+.market-card.back { cursor: default; }
+.market-card.back:hover { transform: none; box-shadow: none; }
+.market-card.back .market-visual { background: transparent; }
+.market-card.ghost { opacity: 0.4; }
+
+.card-back {
+    width: 100%;
+    height: 100%;
+    background-size: cover;
+    background-position: center;
+    border-radius: 10px;
+}
+
+.card-back.level-1-back { background-image: url('card_image/level_1.png'); }
+.card-back.level-2-back { background-image: url('card_image/level_2.png'); }
+.card-back.level-3-back { background-image: url('card_image/level_3.png'); }
+.card-back.rare-back { background-image: url('card_image/rare.png'); }
+.card-back.legend-back { background-image: url('card_image/legend.png'); }
+
+.deck-indicator {
+    width: var(--card-w);
+    aspect-ratio: 652 / 1020;
+    border-radius: 12px;
+    border: 1px solid rgba(148, 163, 184, 0.3);
+    overflow: hidden;
+    background: rgba(0,0,0,0.35);
+    position: relative;
+    align-self: flex-start;
+}
+
+.deck-indicator::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: 12px;
+    background: linear-gradient(180deg, rgba(0,0,0,0.1) 0%, rgba(0,0,0,0.55) 100%);
+}
+
+.deck-indicator .card-back { position: absolute; inset: 0; border-radius: 12px; }
+.deck-indicator.ghost { opacity: 0.4; }
 
 .token-pool { display: flex; gap: 10px; flex-wrap: wrap; }
 .token-chip {
