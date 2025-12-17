@@ -87,12 +87,11 @@ const el = {
 
 // ========== 3) 游戏状态（存档核心） ==========
 /**
- * 你要求存档内容：
+ * 存档包含：
  * - 每个玩家：hand(手牌区/桌面阵列)、reserved(保留区)、tokens(token区)、name、isStarter
  */
 let state = makeEmptyState();
 
-// UI 交互选择
 let ui = {
   selectedTokenColors: new Set(), // for take actions
   selectedMarketCardId: null,     // for reserve/buy
@@ -218,17 +217,14 @@ async function newGame(playerCount){
   state = makeEmptyState();
   ui.errorMessage = "";
 
-  // token pool 按人数调整（按你规则）
   state.tokenPool = makeTokenPoolByPlayerCount(playerCount);
 
-  // 玩家命名：玩家 + 机器人1~3
   state.players = [];
   for (let i=0;i<playerCount;i++){
     state.players.push({
       id: `P${i}`,
       name: i === 0 ? "玩家" : `机器人${i}`,
       isStarter: false,
-      // 你要求：手牌区(这里当作“已捕捉展示区”)、保留区、token区
       hand: [],      // bought/captured cards on table
       reserved: [],  // reserved cards
       tokens: [0,0,0,0,0,0], // counts by color
@@ -248,14 +244,11 @@ async function newGame(playerCount){
 
 // token 数量按人数
 function makeTokenPoolByPlayerCount(n){
-  // 默认 4人：红/粉/蓝/黄/黑 各7，紫5
   let pool = [7,7,7,7,7,5];
   if (n === 3){
-    // 移除紫以外每色各1
     pool = [6,6,6,6,6,5];
   }
   if (n === 2){
-    // 移除紫以外每色各3
     pool = [4,4,4,4,4,5];
   }
   return pool;
@@ -1057,8 +1050,6 @@ function loadFromLocal(){
 }
 
 function makeSavePayload(){
-  // 你要求存：每个玩家的 hand/reserved/tokens/name/isStarter
-  // 我额外把公共区/回合也存了，让你“完整复现”
   return {
     version: state.version,
     createdAt: state.createdAt,
