@@ -1404,18 +1404,15 @@ function applyHandStackingLayout(){
 
     const normalWidth = stacks.length * cardWidth + (stacks.length - 1) * normalGap;
     const modalWidth = handModalContent?.getBoundingClientRect().width || modalMaxWidth;
-    const maxAvailable = Math.max(modalWidth - contentPadding, 0);
-    const available = Math.min(grid.getBoundingClientRect().width || maxAvailable, maxAvailable);
+    const maxAvailable = Math.max(modalMaxWidth - contentPadding, 0);
 
-    const fitsScreen = normalWidth <= maxAvailable;
-    if (fitsScreen){
+    const fitsWithinCap = normalWidth <= maxAvailable;
+    if (fitsWithinCap){
       grid.style.minWidth = `${normalWidth}px`;
       return;
     }
 
-    if (!available) return;
-
-    const spacing = Math.max((available - cardWidth) / (stacks.length - 1), 0);
+    const spacing = (Math.max(modalWidth - contentPadding, 0) - cardWidth) / (stacks.length - 1);
     const overlap = spacing - cardWidth;
 
     grid.classList.add("stacked");
