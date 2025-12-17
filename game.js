@@ -293,6 +293,21 @@ function totalTokensOfPlayer(p){
   return p.tokens.reduce((a,b)=>a+b,0);
 }
 
+function rewardBonusesOfPlayer(p){
+  const bonus = [0,0,0,0,0,0];
+  function collect(card){
+    if (!card) return;
+    const r = card.reward;
+    if (r && r.ball_color >= 0 && r.ball_color < bonus.length){
+      bonus[r.ball_color] += Number(r.number) || 0;
+    }
+    const stacked = getStackedCards(card);
+    stacked.forEach(collect);
+  }
+  p.hand.forEach(collect);
+  return bonus;
+}
+
 function totalTrophiesOfPlayer(p){
   return p.hand.reduce((sum, c)=>sum + (c.point > 0 ? c.point : 0), 0);
 }
@@ -319,47 +334,91 @@ function clampTokenLimit(p){
 }
 
 function canAfford(p, card){
-  // 紫色大师球可当万能：支付时先用对应色，不够再用紫
+  // 紫色大师球可当万能：支付时先用对应色，不够再用紫；奖励视为永久折扣
   const need = [0,0,0,0,0,0];
   for (const item of card.cost){
     if (item.ball_color >= 0 && item.ball_color <= 5){
       need[item.ball_color] += item.number;
     }
   }
-  // 先扣非紫
-  let purpleNeeded = 0;
-  for (let c=0;c<5;c++){
-    const shortage = Math.max(0, need[c] - p.tokens[c]);
-    purpleNeeded += shortage;
-  }
-  // 还要考虑 cost 里如果直接写了紫（不常见，但按结构支持）
-  const directPurple = need[5];
-  purpleNeeded += directPurple;
 
-  return p.tokens[5] >= purpleNeeded;
+  const bonus = rewardBonusesOfPlayer(p);
+  const tokens = [...p.tokens];
+  let purplePool = tokens[5] + bonus[5];
+
+  for (let c=0;c<5;c++){
+    let required = need[c];
+    const useBonus = Math.min(bonus[c], required);
+    required -= useBonus;
+
+    const useToken = Math.min(tokens[c], required);
+    tokens[c] -= useToken;
+    required -= useToken;
+
+    if (required > 0){
+      purplePool -= required;
+      if (purplePool < 0) return false;
+    }
+  }
+
+  const purpleCost = need[5];
+  purplePool -= purpleCost;
+
+  return purplePool >= 0;
 }
 
 function payCost(p, card){
   // 按 canAfford 假设可支付
+  const need = [0,0,0,0,0,0];
   for (const item of card.cost){
-    const c = item.ball_color;
-    const n = item.number;
-    if (c < 0 || c > 5) continue;
-    if (c === 5){
-      // 直接紫
-      p.tokens[5] -= n;
-      state.tokenPool[5] += n;
-    } else {
-      const use = Math.min(p.tokens[c], n);
-      p.tokens[c] -= use;
-      state.tokenPool[c] += use;
+    if (item.ball_color >= 0 && item.ball_color <= 5){
+      need[item.ball_color] += item.number;
+    }
+  }
 
-      const shortage = n - use;
-      if (shortage > 0){
-        // 用紫补
-        p.tokens[5] -= shortage;
-        state.tokenPool[5] += shortage;
-      }
+  const bonus = rewardBonusesOfPlayer(p);
+  const spent = [0,0,0,0,0,0];
+  let purpleBonus = bonus[5];
+  let purpleTokens = p.tokens[5];
+
+  for (let c=0;c<5;c++){
+    let required = need[c];
+    const useBonus = Math.min(bonus[c], required);
+    required -= useBonus;
+
+    const useToken = Math.min(p.tokens[c], required);
+    p.tokens[c] -= useToken;
+    spent[c] += useToken;
+    required -= useToken;
+
+    if (required > 0){
+      const usePurpleBonus = Math.min(purpleBonus, required);
+      purpleBonus -= usePurpleBonus;
+      required -= usePurpleBonus;
+
+      const usePurpleToken = Math.min(purpleTokens, required);
+      purpleTokens -= usePurpleToken;
+      spent[5] += usePurpleToken;
+      required -= usePurpleToken;
+    }
+  }
+
+  let purpleRequired = need[5];
+  const usePurpleBonus = Math.min(purpleBonus, purpleRequired);
+  purpleBonus -= usePurpleBonus;
+  purpleRequired -= usePurpleBonus;
+
+  if (purpleRequired > 0){
+    const usePurpleToken = Math.min(purpleTokens, purpleRequired);
+    purpleTokens -= usePurpleToken;
+    spent[5] += usePurpleToken;
+  }
+
+  p.tokens[5] = purpleTokens;
+
+  for (let i=0;i<spent.length;i++){
+    if (spent[i] > 0){
+      state.tokenPool[i] += spent[i];
     }
   }
 }
@@ -370,12 +429,24 @@ function canAffordEvolution(p, card){
   const color = evoCost.ball_color;
   const need = evoCost.number;
   if (color < 0 || color >= p.tokens.length) return false;
-  const availableColor = p.tokens[color];
+  const bonus = rewardBonusesOfPlayer(p);
+
   if (color === Ball.master_ball){
-    return availableColor >= need;
+    const purplePool = p.tokens[Ball.master_ball] + bonus[Ball.master_ball];
+    return purplePool >= need;
   }
-  const availablePurple = p.tokens[Ball.master_ball];
-  return availableColor + availablePurple >= need;
+
+  let remaining = need;
+  const useBonus = Math.min(bonus[color], remaining);
+  remaining -= useBonus;
+
+  const useTokens = Math.min(p.tokens[color], remaining);
+  remaining -= useTokens;
+
+  if (remaining <= 0) return true;
+
+  const purplePool = p.tokens[Ball.master_ball] + bonus[Ball.master_ball];
+  return purplePool >= remaining;
 }
 
 function payEvolutionCost(p, card){
@@ -385,10 +456,22 @@ function payEvolutionCost(p, card){
   let remaining = evoCost.number;
   if (color < 0 || color >= p.tokens.length) return;
 
-  const spendColor = Math.min(p.tokens[color], remaining);
-  p.tokens[color] -= spendColor;
-  state.tokenPool[color] += spendColor;
-  remaining -= spendColor;
+  const bonus = rewardBonusesOfPlayer(p);
+
+  if (color !== Ball.master_ball){
+    const useBonus = Math.min(bonus[color], remaining);
+    remaining -= useBonus;
+
+    const spendColor = Math.min(p.tokens[color], remaining);
+    p.tokens[color] -= spendColor;
+    state.tokenPool[color] += spendColor;
+    remaining -= spendColor;
+  }
+
+  if (remaining > 0){
+    const spendPurpleBonus = Math.min(bonus[Ball.master_ball], remaining);
+    remaining -= spendPurpleBonus;
+  }
 
   if (remaining > 0){
     const spendPurple = Math.min(p.tokens[Ball.master_ball], remaining);
@@ -427,14 +510,73 @@ function replaceWithEvolution(player, baseCard, evolvedTemplate){
   const evolved = { ...evolvedTemplate, stackedCards: stack };
 
   player.hand.splice(idx, 1, evolved);
+  return evolved;
+}
+
+function findPlayerZone(playerIndex, zoneSelector){
+  return document.querySelector(`.player[data-player-index="${playerIndex}"] ${zoneSelector}`);
+}
+
+function animateCardMove(startEl, targetEl, duration = 800){
+  if (!startEl || !targetEl) return Promise.resolve();
+  const startRect = startEl.getBoundingClientRect();
+  const targetRect = targetEl.getBoundingClientRect();
+  if (!startRect.width || !targetRect.width) return Promise.resolve();
+
+  const startCenter = {
+    x: startRect.left + startRect.width / 2,
+    y: startRect.top + startRect.height / 2,
+  };
+  const targetCenter = {
+    x: targetRect.left + targetRect.width / 2,
+    y: targetRect.top + targetRect.height / 2,
+  };
+
+  const clone = startEl.cloneNode(true);
+  clone.classList.add("flying-card");
+  Object.assign(clone.style, {
+    position: "fixed",
+    left: `${startRect.left}px`,
+    top: `${startRect.top}px`,
+    width: `${startRect.width}px`,
+    height: `${startRect.height}px`,
+    transform: "translate(0,0) scale(1)",
+    transformOrigin: "center center",
+    transition: `transform ${Math.min(duration, 1000)}ms ease, opacity ${Math.min(duration, 1000)}ms ease`,
+    zIndex: 9999,
+    margin: "0",
+    opacity: "1",
+  });
+
+  document.body.appendChild(clone);
+
+  const dx = targetCenter.x - startCenter.x;
+  const dy = targetCenter.y - startCenter.y;
+  const scale = targetRect.width / startRect.width;
+
+  // 强制一次回流，确保过渡生效
+  clone.getBoundingClientRect();
+
+  requestAnimationFrame(() => {
+    clone.style.transform = `translate(${dx}px, ${dy}px) scale(${scale})`;
+    clone.style.opacity = "0.92";
+  });
+
+  return new Promise(resolve => {
+    clone.addEventListener("transitionend", () => {
+      clone.remove();
+      resolve();
+    }, { once: true });
+  });
 }
 
 // ========== 7) 行动实现 ==========
 function actionTake3Different(){
   const p = currentPlayer();
   const colors = [...ui.selectedTokenColors];
-  if (colors.length === 0) return toast("先点击公共 token 选择颜色", { type: "error" });
-  if (colors.length > 3) return toast("最多选 3 种不同颜色", { type: "error" });
+  if (colors.length === 0) return toast("先选择精灵球标记", { type: "error" });
+  if (colors.includes(Ball.master_ball)) return toast("大师球只能在保留卡牌时获得", { type: "error" });
+  if (colors.length > 3) return toast("最多选 3 种不同颜色的精灵球标记", { type: "error" });
 
   // 实际可拿：供应区有的才拿
   let took = 0;
@@ -444,20 +586,22 @@ function actionTake3Different(){
     p.tokens[c] += 1;
     took += 1;
   }
-  if (took === 0) return toast("这些颜色供应区都没了", { type: "error" });
+  if (took === 0) return toast("这些颜色的精灵球标记供应区都没了", { type: "error" });
 
   clampTokenLimit(p);
   clearSelections();
   renderAll();
-  toast(`拿取 ${took} 个不同颜色 token`);
+  toast(`拿取 ${took} 个不同颜色精灵球标记`);
 }
 
 function actionTake2Same(){
   const p = currentPlayer();
   const colors = [...ui.selectedTokenColors];
-  if (colors.length !== 1) return toast("行动2 只能选择 1 种颜色", { type: "error" });
+  if (colors.length === 0) return toast("先选择精灵球标记", { type: "error" });
+  if (colors.length !== 1) return toast("该行动只能选择 1 种精灵球标记颜色", { type: "error" });
   const c = colors[0];
-  if (!canTakeTwoSame(c)) return toast("该颜色供应区不足 4 个，不能拿 2 个同色", { type: "error" });
+  if (c === Ball.master_ball) return toast("大师球只能在保留卡牌时获得", { type: "error" });
+  if (!canTakeTwoSame(c)) return toast("该颜色精灵球标记供应不足 4 个，不能拿 2 个同色", { type: "error" });
 
   state.tokenPool[c] -= 2;
   p.tokens[c] += 2;
@@ -465,32 +609,51 @@ function actionTake2Same(){
   clampTokenLimit(p);
   clearSelections();
   renderAll();
-  toast("拿取 2 个同色 token");
+  toast("拿取 2 个同色精灵球标记");
 }
 
 function actionReserve(){
   const p = currentPlayer();
+  if (p.reserved.length >= 3){
+    if (state.tokenPool[Ball.master_ball] <= 0) return toast("保留区已满且没有可拿的大师球精灵球标记", { type: "error" });
+    state.tokenPool[Ball.master_ball] -= 1;
+    p.tokens[Ball.master_ball] += 1;
+    clampTokenLimit(p);
+    clearSelections();
+    renderAll();
+    toast("保留区已满，本次仅拿取 1 个大师球精灵球标记");
+    return;
+  }
+
   if (!ui.selectedMarketCardId) return toast("先点击展示区选择要保留的卡", { type: "error" });
-  if (p.reserved.length >= 3) return toast("保留区最多 3 张", { type: "error" });
 
   const found = findMarketCard(ui.selectedMarketCardId);
   if (!found) return toast("选择的卡不在展示区", { type: "error" });
 
   const { level, idx, card } = found;
+  if (level >= 4) return toast("稀有或传说卡牌不能被保留", { type: "error" });
+  const startEl = document.querySelector(`.market-card[data-card-id="${card.id}"]`);
+  const targetZone = findPlayerZone(state.currentPlayerIndex, ".reserve-zone .zone-items");
+
+  state.market.slotsByLevel[level][idx] = null;
   p.reserved.push(card);
 
-  state.market.slotsByLevel[level][idx] = drawFromDeck(level);
-
-  // 拿 1 个大师球（紫）
+  let gotMaster = false;
   if (state.tokenPool[Ball.master_ball] > 0){
     state.tokenPool[Ball.master_ball] -= 1;
     p.tokens[Ball.master_ball] += 1;
+    gotMaster = true;
   }
 
   clampTokenLimit(p);
   clearSelections();
-  renderAll();
-  toast("已保留 1 张，并尝试获得 1 个大师球");
+  if (startEl) startEl.style.visibility = "hidden";
+
+  animateCardMove(startEl, targetZone).then(() => {
+    state.market.slotsByLevel[level][idx] = drawFromDeck(level);
+    renderAll();
+    toast(`已保留 1 张${gotMaster ? "，并获得 1 个大师球精灵球标记" : ""}`);
+  });
 }
 
 function actionBuy(){
@@ -499,57 +662,93 @@ function actionBuy(){
   // 优先：买保留牌
   if (ui.selectedReservedCard){
     const { playerIndex, cardId } = ui.selectedReservedCard;
-    if (playerIndex !== state.currentPlayerIndex) return toast("只能购买自己保留区的卡", { type: "error" });
+    if (playerIndex !== state.currentPlayerIndex) return toast("只能捕捉自己保留区的卡", { type: "error" });
     const rIdx = p.reserved.findIndex(c => c.id === cardId);
     if (rIdx < 0) return toast("该卡不在你的保留区", { type: "error" });
 
     const card = p.reserved[rIdx];
-    if (!canAfford(p, card)) return toast("token 不够，无法购买该卡", { type: "error" });
+    if (!canAfford(p, card)) return toast("精灵球标记不足，无法捕捉该卡", { type: "error" });
+
+    const reserveZone = findPlayerZone(state.currentPlayerIndex, ".reserve-zone");
+    const startEl = reserveZone ? reserveZone.querySelector(`.mini-card[data-card-id="${card.id}"]`) : null;
+    const handZone = findPlayerZone(state.currentPlayerIndex, ".hand-zone .zone-items");
 
     payCost(p, card);
     p.reserved.splice(rIdx, 1);
     p.hand.push(card);
 
     clearSelections();
-    renderAll();
-    toast("已购买保留区卡牌");
-    checkEndTrigger();
+    if (startEl) startEl.style.visibility = "hidden";
+
+    animateCardMove(startEl, handZone).then(() => {
+      renderAll();
+      toast("已捕捉保留区卡牌");
+      checkEndTrigger();
+    });
     return;
   }
 
   // 购买展示区卡
-  if (!ui.selectedMarketCardId) return toast("先点击展示区选择要购买的卡", { type: "error" });
+  if (!ui.selectedMarketCardId) return toast("先点击展示区选择要捕捉的卡", { type: "error" });
   const found = findMarketCard(ui.selectedMarketCardId);
   if (!found) return toast("选择的卡不在展示区", { type: "error" });
 
   const { level, idx, card } = found;
-  if (!canAfford(p, card)) return toast("token 不够，无法购买该卡", { type: "error" });
+  if (!canAfford(p, card)) return toast("精灵球标记不足，无法捕捉该卡", { type: "error" });
+
+  const startEl = document.querySelector(`.market-card[data-card-id="${card.id}"]`);
+  const handZone = findPlayerZone(state.currentPlayerIndex, ".hand-zone .zone-items");
 
   payCost(p, card);
   p.hand.push(card);
 
-  // 补牌
-  state.market.slotsByLevel[level][idx] = drawFromDeck(level);
+  // 补牌在动画结束后进行
+  state.market.slotsByLevel[level][idx] = null;
 
   clearSelections();
-  renderAll();
-  toast("已购买展示区卡牌");
-  checkEndTrigger();
+  if (startEl) startEl.style.visibility = "hidden";
+
+  animateCardMove(startEl, handZone).then(() => {
+    state.market.slotsByLevel[level][idx] = drawFromDeck(level);
+    renderAll();
+    toast("已捕捉展示区卡牌");
+    checkEndTrigger();
+  });
 }
 
 function actionEvolve(){
-  if (state.perTurn.evolved) return toast("本回合已进化过一次", { type: "error" });
+  if (state.perTurn.evolved) return toast("本回合已完成一次进化", { type: "error" });
 
   const p = currentPlayer();
-  const evo = findEvolvableCard(p);
-  if (!evo) return toast("没有满足条件的进化目标", { type: "error" });
+  if (!ui.selectedMarketCardId) return toast("先点击展示区选择要用于进化的卡牌", { type: "error" });
+  const found = findMarketCard(ui.selectedMarketCardId);
+  if (!found) return toast("选择的卡不在展示区", { type: "error" });
 
-  payEvolutionCost(p, evo.baseCard);
-  replaceWithEvolution(p, evo.baseCard, evo.targetCard);
+  const { level, idx, card: marketCard } = found;
+  const matchingBases = p.hand.filter(c => c?.evolution?.name === marketCard.name);
+  if (!matchingBases.length) return toast("该展示区卡牌无法进化你的任何手牌", { type: "error" });
+
+  const baseCard = matchingBases.find(c => canAffordEvolution(p, c));
+  if (!baseCard) return toast("精灵球标记不足，无法用该卡进行进化", { type: "error" });
+
+  payEvolutionCost(p, baseCard);
+
+  const startEl = document.querySelector(`.market-card[data-card-id="${marketCard.id}"]`);
+  const handZone = findPlayerZone(state.currentPlayerIndex, ".hand-zone .zone-items");
+
+  state.market.slotsByLevel[level][idx] = null;
+  if (startEl) startEl.style.visibility = "hidden";
+
+  const evolved = replaceWithEvolution(p, baseCard, marketCard);
 
   state.perTurn.evolved = true;
-  renderAll();
-  toast(`${evo.baseCard.name} 已进化为 ${evo.targetCard.name}`);
+  ui.selectedMarketCardId = null;
+
+  animateCardMove(startEl, handZone).then(() => {
+    state.market.slotsByLevel[level][idx] = drawFromDeck(level);
+    renderAll();
+    toast(`${baseCard.name} 已进化为 ${marketCard.name}`);
+  });
 }
 
 function actionReplaceOne(){
@@ -914,6 +1113,7 @@ function renderMarketCard(card){
 
 function renderMiniCard(card, selected){
   const mini = renderCardVisual(card, "mini-card");
+  mini.dataset.cardId = card.id;
   if (selected) mini.classList.add("selected");
   return mini;
 }
@@ -939,6 +1139,7 @@ function renderPlayers(){
   state.players.forEach((p, idx) => {
     const wrap = document.createElement("div");
     wrap.className = "player";
+    wrap.dataset.playerIndex = String(idx);
 
     const head = document.createElement("div");
     head.className = "player-head";
@@ -950,7 +1151,7 @@ function renderPlayers(){
       <span>${escapeHtml(p.name)}</span>
       ${idx === state.currentPlayerIndex ? `<span class="pip">当前</span>` : ""}
       <span class="pip">奖杯 ${totalTrophiesOfPlayer(p)}</span>
-      <span class="pip">token ${totalTokensOfPlayer(p)}/10</span>
+      <span class="pip">精灵球标记 ${totalTokensOfPlayer(p)}/10</span>
     `;
     head.appendChild(name);
 
@@ -986,7 +1187,16 @@ function renderHandZone(cards, playerIndex){
   });
 
   zone.appendChild(items);
-  zone.addEventListener("click", () => openHandModal(playerIndex));
+  items.addEventListener("click", (ev) => {
+    const cardEl = ev.target.closest(".mini-card");
+    if (!cardEl) return;
+    openHandModal(playerIndex);
+  });
+
+  zone.addEventListener("click", (ev) => {
+    if (ev.target.closest(".mini-card")) return;
+    openHandModal(playerIndex);
+  });
   return zone;
 }
 
@@ -1210,6 +1420,7 @@ if (el.btnConfirmPlayerCount) el.btnConfirmPlayerCount.addEventListener("click",
 
 if (el.btnCancelPlayerCount) el.btnCancelPlayerCount.addEventListener("click", closeModals);
 if (el.btnCloseHandModal) el.btnCloseHandModal.addEventListener("click", closeModals);
+if (el.btnCloseCardDetailModal) el.btnCloseCardDetailModal.addEventListener("click", closeModals);
 
 if (el.modalOverlay) el.modalOverlay.addEventListener("click", closeModals);
 
