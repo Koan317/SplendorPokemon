@@ -1199,7 +1199,7 @@ function renderHandZone(cards, playerIndex){
     if (!card) return;
     toggleHandSelection(cardId, playerIndex);
     renderPlayers();
-    renderHandModal(playerIndex);
+    openHandModal(playerIndex);
   });
 
   zone.addEventListener("click", (ev) => {
