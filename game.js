@@ -689,8 +689,6 @@ function renderMarket(){
 
   const main = document.createElement("div");
   main.className = "market-main";
-  const side = document.createElement("div");
-  side.className = "market-side";
 
   const mainGroups = [
     { level: 1, deckClass: "level-1-back", slots: 4 },
@@ -707,12 +705,15 @@ function renderMarket(){
     { level: 5, deckClass: "legend-back", slots: 1 },
   ];
 
+  const special = document.createElement("div");
+  special.className = "market-special";
+
   for (const group of sideGroups){
-    side.appendChild(renderVerticalMarket(group));
+    special.appendChild(renderVerticalMarket(group));
   }
 
   el.market.appendChild(main);
-  el.market.appendChild(side);
+  el.market.appendChild(special);
 }
 
 function renderMarketRow(group){
