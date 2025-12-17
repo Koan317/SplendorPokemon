@@ -118,6 +118,21 @@
         </div>
     </div>
 
+    <div id="loadModal" class="modal hidden">
+        <div class="modal-content">
+            <h2>选择存档文件</h2>
+            <p>请选择 <code>saves</code> 文件夹中的 JSON 存档文件。</p>
+            <label class="file-input">
+                <span>存档文件</span>
+                <input id="loadFileInput" type="file" accept="application/json,.json" />
+            </label>
+            <div class="modal-actions">
+                <button id="btnConfirmLoad" class="btn primary" disabled>读档</button>
+                <button id="btnCancelLoad" class="btn">取消</button>
+            </div>
+        </div>
+    </div>
+
     <script src="game.js"></script>
 </body>
 </html>

@@ -52,6 +52,11 @@ const el = {
 
   btnReplaceOne: $("#btnReplaceOne"),
 
+  loadModal: $("#loadModal"),
+  loadFileInput: $("#loadFileInput"),
+  btnConfirmLoad: $("#btnConfirmLoad"),
+  btnCancelLoad: $("#btnCancelLoad"),
+
   modalOverlay: $("#modalOverlay"),
   confirmNewGameModal: $("#confirmNewGameModal"),
   victoryModal: $("#victoryModal"),
@@ -99,6 +104,7 @@ let ui = {
   handPreviewPlayerIndex: null,
   errorMessage: "",
   tokenReturn: null,              // { playerIndex, required, selected: number[6] }
+  loadFile: null,
 };
 
 let cardLibraryData = null;
@@ -1034,7 +1040,10 @@ function showVictoryModal(winner){
 function saveToLocal(){
   const payload = makeSavePayload();
   localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
-  toast("已存档到本地 localStorage");
+  const eventName = prompt("请输入本次事件名称（将用于存档文件名）", "事件") || "事件";
+  const fileName = buildSaveFileName(eventName);
+  downloadJSON(payload, fileName);
+  toast("已存档至 saves 文件夹（同时写入本地存储）");
 }
 
 function loadFromLocal(){
@@ -1047,6 +1056,51 @@ function loadFromLocal(){
   }catch{
     toast("读档失败：存档内容损坏", { type: "error" });
   }
+}
+
+function buildSaveFileName(eventName){
+  const datePart = new Date().toISOString().slice(0, 10);
+  const safeEvent = sanitizeFileName(eventName || "事件");
+  return `saves/${datePart}_${safeEvent}.json`;
+}
+
+function sanitizeFileName(name){
+  return (name || "事件")
+    .trim()
+    .replace(/[\\/:*?"<>|]+/g, "_")
+    .replace(/\s+/g, "_") || "事件";
+}
+
+function downloadJSON(data, fileName){
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = fileName;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+function loadFromFile(file){
+  if (!file){
+    toast("请先选择存档文件", { type: "error" });
+    return;
+  }
+  const reader = new FileReader();
+  reader.onload = () => {
+    try{
+      const parsed = JSON.parse(reader.result);
+      applySavePayload(parsed);
+      toast(`已从 ${file.name} 读档`);
+      closeModals();
+    }catch{
+      toast("读档失败：存档内容损坏", { type: "error" });
+    }
+  };
+  reader.onerror = () => toast("读取文件失败", { type: "error" });
+  reader.readAsText(file);
 }
 
 function makeSavePayload(){
@@ -1748,6 +1802,19 @@ function closeModals({ force = false } = {}){
   el.modalOverlay.classList.add("hidden");
   document.body.classList.remove("modal-open");
   ui.handPreviewPlayerIndex = null;
+  resetLoadModal();
+}
+
+function resetLoadModal(){
+  ui.loadFile = null;
+  if (el.loadFileInput) el.loadFileInput.value = "";
+  if (el.btnConfirmLoad) el.btnConfirmLoad.disabled = true;
+}
+
+function handleLoadFileSelected(event){
+  const file = event?.target?.files?.[0];
+  ui.loadFile = file || null;
+  if (el.btnConfirmLoad) el.btnConfirmLoad.disabled = !file;
 }
 
 // ========== 11) 事件绑定 ==========
@@ -1756,7 +1823,13 @@ if (el.btnNew) el.btnNew.addEventListener("click", () => {
 });
 
 if (el.btnSave) el.btnSave.addEventListener("click", saveToLocal);
-if (el.btnLoad) el.btnLoad.addEventListener("click", loadFromLocal);
+if (el.btnLoad) el.btnLoad.addEventListener("click", () => {
+  resetLoadModal();
+  showModal(el.loadModal);
+});
+if (el.loadFileInput) el.loadFileInput.addEventListener("change", handleLoadFileSelected);
+if (el.btnConfirmLoad) el.btnConfirmLoad.addEventListener("click", () => loadFromFile(ui.loadFile));
+if (el.btnCancelLoad) el.btnCancelLoad.addEventListener("click", closeModals);
 
 if (el.btnResetStorage) el.btnResetStorage.addEventListener("click", () => {
   localStorage.removeItem(STORAGE_KEY);
