@@ -529,6 +529,15 @@ function animateCardMove(startEl, targetEl, duration = 800){
   const targetRect = targetEl.getBoundingClientRect();
   if (!startRect.width || !targetRect.width) return Promise.resolve();
 
+  const startCenter = {
+    x: startRect.left + startRect.width / 2,
+    y: startRect.top + startRect.height / 2,
+  };
+  const targetCenter = {
+    x: targetRect.left + targetRect.width / 2,
+    y: targetRect.top + targetRect.height / 2,
+  };
+
   const clone = startEl.cloneNode(true);
   clone.classList.add("flying-card");
   Object.assign(clone.style, {
@@ -538,6 +547,7 @@ function animateCardMove(startEl, targetEl, duration = 800){
     width: `${startRect.width}px`,
     height: `${startRect.height}px`,
     transform: "translate(0,0) scale(1)",
+    transformOrigin: "center center",
     transition: `transform ${Math.min(duration, 1000)}ms ease, opacity ${Math.min(duration, 1000)}ms ease`,
     zIndex: 9999,
     margin: "0",
@@ -545,8 +555,9 @@ function animateCardMove(startEl, targetEl, duration = 800){
   });
 
   document.body.appendChild(clone);
-  const dx = targetRect.left - startRect.left;
-  const dy = targetRect.top - startRect.top;
+
+  const dx = targetCenter.x - startCenter.x;
+  const dy = targetCenter.y - startCenter.y;
   const scale = targetRect.width / startRect.width;
 
   // 强制一次回流，确保过渡生效
@@ -1170,17 +1181,22 @@ function renderHandZone(cards, playerIndex){
     const mini = renderMiniCard(card, selected);
     mini.style.left = `${idx * offset}px`;
     mini.style.zIndex = String(1 + idx);
-    mini.addEventListener("click", (ev) => {
-      ev.stopPropagation();
-      toggleHandSelection(card.id, playerIndex);
-      renderPlayers();
-      renderHandModal(playerIndex);
-      openCardDetail(card);
-    });
     items.appendChild(mini);
   });
 
   zone.appendChild(items);
+  items.addEventListener("click", (ev) => {
+    const cardEl = ev.target.closest(".mini-card");
+    if (!cardEl) return;
+    const cardId = cardEl.dataset.cardId;
+    const card = cards.find(c => c.id === cardId);
+    if (!card) return;
+    toggleHandSelection(cardId, playerIndex);
+    renderPlayers();
+    renderHandModal(playerIndex);
+    openCardDetail(card);
+  });
+
   zone.addEventListener("click", (ev) => {
     if (ev.target.closest(".mini-card")) return;
     openHandModal(playerIndex);
