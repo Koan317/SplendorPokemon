@@ -316,8 +316,6 @@ body {
 .action-evolve { background: linear-gradient(135deg, rgba(99, 102, 241, 0.28), rgba(59, 130, 246, 0.12)); border-color: rgba(99,102,241,0.6); color: #e0e7ff; }
 .end-turn { border-color: #1d4ed8; color: #bfdbfe; background: rgba(37, 99, 235, 0.15); font-weight: 800; }
 
-.action-hint { color: #cbd5e1; font-size: 12px; text-align: right; opacity: 0.8; }
-
 /* =======================
    玩家一览
 ======================= */
