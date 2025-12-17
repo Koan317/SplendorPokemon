@@ -444,14 +444,29 @@ body {
 
 .hand-group { display: flex; flex-direction: column; gap: 10px; }
 .hand-group-title { font-weight: 700; color: #e5e7eb; letter-spacing: 0.4px; }
+
 .hand-group-grid {
+    --hand-group-gap: 10px;
+    --hand-stack-overlap: 0px;
     display: flex;
     flex-direction: row;
-    flex-wrap: wrap;
-    gap: 10px;
+    flex-wrap: nowrap;
+    gap: var(--hand-group-gap);
     align-items: flex-start;
     padding-bottom: 8px;
     overflow: visible;
+}
+
+.hand-group-grid.stacked {
+    gap: 0;
+}
+
+.hand-group-grid.stacked .card-stack {
+    margin-left: var(--hand-stack-overlap);
+}
+
+.hand-group-grid.stacked .card-stack:first-child {
+    margin-left: 0;
 }
 
 .hand-group-grid .card-stack { flex: 0 0 var(--card-w); }

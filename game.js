@@ -1360,6 +1360,36 @@ function renderHandModal(playerIndex = ui.handPreviewPlayerIndex){
     hint.textContent = "暂无卡牌";
     el.handModalBody.appendChild(hint);
   }
+
+  requestAnimationFrame(applyHandStackingLayout);
+}
+
+function applyHandStackingLayout(){
+  if (!el.handModalBody) return;
+
+  const cardWidth = parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--card-w")) || 160;
+  const normalGap = 10;
+
+  const grids = el.handModalBody.querySelectorAll(".hand-group-grid");
+  grids.forEach(grid => {
+    grid.classList.remove("stacked");
+    grid.style.removeProperty("--hand-stack-overlap");
+
+    const stacks = grid.querySelectorAll(".card-stack");
+    if (stacks.length <= 1) return;
+
+    const available = grid.getBoundingClientRect().width;
+    if (!available) return;
+
+    const totalNormal = stacks.length * cardWidth + (stacks.length - 1) * normalGap;
+    if (totalNormal <= available) return;
+
+    const step = Math.max(0, (available - cardWidth) / (stacks.length - 1));
+    const overlap = Math.max(step - cardWidth, -cardWidth + 12);
+
+    grid.classList.add("stacked");
+    grid.style.setProperty("--hand-stack-overlap", `${overlap}px`);
+  });
 }
 
 function groupCardsByReward(cards){
@@ -1423,6 +1453,11 @@ if (el.btnCloseHandModal) el.btnCloseHandModal.addEventListener("click", closeMo
 if (el.btnCloseCardDetailModal) el.btnCloseCardDetailModal.addEventListener("click", closeModals);
 
 if (el.modalOverlay) el.modalOverlay.addEventListener("click", closeModals);
+
+window.addEventListener("resize", () => {
+  if (!el.handModal || el.handModal.classList.contains("hidden")) return;
+  requestAnimationFrame(applyHandStackingLayout);
+});
 
 if (el.btnReplaceOne) el.btnReplaceOne.addEventListener("click", actionReplaceOne);
 
