@@ -59,6 +59,11 @@ const el = {
   handModalBody: $("#handModalBody"),
   btnCloseHandModal: $("#btnCloseHandModal"),
 
+  cardDetailTitle: $("#cardDetailTitle"),
+  cardDetailModal: $("#cardDetailModal"),
+  cardDetailBody: $("#cardDetailBody"),
+  btnCloseCardDetailModal: $("#btnCloseCardDetailModal"),
+
   errorBanner: $("#errorBanner"),
 
   actTake3: $("#actTake3"),
@@ -294,6 +299,21 @@ function totalTokensOfPlayer(p){
   return p.tokens.reduce((a,b)=>a+b,0);
 }
 
+function rewardBonusesOfPlayer(p){
+  const bonus = [0,0,0,0,0,0];
+  function collect(card){
+    if (!card) return;
+    const r = card.reward;
+    if (r && r.ball_color >= 0 && r.ball_color < bonus.length){
+      bonus[r.ball_color] += Number(r.number) || 0;
+    }
+    const stacked = getStackedCards(card);
+    stacked.forEach(collect);
+  }
+  p.hand.forEach(collect);
+  return bonus;
+}
+
 function totalTrophiesOfPlayer(p){
   return p.hand.reduce((sum, c)=>sum + (c.point > 0 ? c.point : 0), 0);
 }
@@ -320,47 +340,91 @@ function clampTokenLimit(p){
 }
 
 function canAfford(p, card){
-  // 紫色大师球可当万能：支付时先用对应色，不够再用紫
+  // 紫色大师球可当万能：支付时先用对应色，不够再用紫；奖励视为永久折扣
   const need = [0,0,0,0,0,0];
   for (const item of card.cost){
     if (item.ball_color >= 0 && item.ball_color <= 5){
       need[item.ball_color] += item.number;
     }
   }
-  // 先扣非紫
-  let purpleNeeded = 0;
-  for (let c=0;c<5;c++){
-    const shortage = Math.max(0, need[c] - p.tokens[c]);
-    purpleNeeded += shortage;
-  }
-  // 还要考虑 cost 里如果直接写了紫（不常见，但按结构支持）
-  const directPurple = need[5];
-  purpleNeeded += directPurple;
 
-  return p.tokens[5] >= purpleNeeded;
+  const bonus = rewardBonusesOfPlayer(p);
+  const tokens = [...p.tokens];
+  let purplePool = tokens[5] + bonus[5];
+
+  for (let c=0;c<5;c++){
+    let required = need[c];
+    const useBonus = Math.min(bonus[c], required);
+    required -= useBonus;
+
+    const useToken = Math.min(tokens[c], required);
+    tokens[c] -= useToken;
+    required -= useToken;
+
+    if (required > 0){
+      purplePool -= required;
+      if (purplePool < 0) return false;
+    }
+  }
+
+  const purpleCost = need[5];
+  purplePool -= purpleCost;
+
+  return purplePool >= 0;
 }
 
 function payCost(p, card){
   // 按 canAfford 假设可支付
+  const need = [0,0,0,0,0,0];
   for (const item of card.cost){
-    const c = item.ball_color;
-    const n = item.number;
-    if (c < 0 || c > 5) continue;
-    if (c === 5){
-      // 直接紫
-      p.tokens[5] -= n;
-      state.tokenPool[5] += n;
-    } else {
-      const use = Math.min(p.tokens[c], n);
-      p.tokens[c] -= use;
-      state.tokenPool[c] += use;
+    if (item.ball_color >= 0 && item.ball_color <= 5){
+      need[item.ball_color] += item.number;
+    }
+  }
 
-      const shortage = n - use;
-      if (shortage > 0){
-        // 用紫补
-        p.tokens[5] -= shortage;
-        state.tokenPool[5] += shortage;
-      }
+  const bonus = rewardBonusesOfPlayer(p);
+  const spent = [0,0,0,0,0,0];
+  let purpleBonus = bonus[5];
+  let purpleTokens = p.tokens[5];
+
+  for (let c=0;c<5;c++){
+    let required = need[c];
+    const useBonus = Math.min(bonus[c], required);
+    required -= useBonus;
+
+    const useToken = Math.min(p.tokens[c], required);
+    p.tokens[c] -= useToken;
+    spent[c] += useToken;
+    required -= useToken;
+
+    if (required > 0){
+      const usePurpleBonus = Math.min(purpleBonus, required);
+      purpleBonus -= usePurpleBonus;
+      required -= usePurpleBonus;
+
+      const usePurpleToken = Math.min(purpleTokens, required);
+      purpleTokens -= usePurpleToken;
+      spent[5] += usePurpleToken;
+      required -= usePurpleToken;
+    }
+  }
+
+  let purpleRequired = need[5];
+  const usePurpleBonus = Math.min(purpleBonus, purpleRequired);
+  purpleBonus -= usePurpleBonus;
+  purpleRequired -= usePurpleBonus;
+
+  if (purpleRequired > 0){
+    const usePurpleToken = Math.min(purpleTokens, purpleRequired);
+    purpleTokens -= usePurpleToken;
+    spent[5] += usePurpleToken;
+  }
+
+  p.tokens[5] = purpleTokens;
+
+  for (let i=0;i<spent.length;i++){
+    if (spent[i] > 0){
+      state.tokenPool[i] += spent[i];
     }
   }
 }
@@ -371,12 +435,24 @@ function canAffordEvolution(p, card){
   const color = evoCost.ball_color;
   const need = evoCost.number;
   if (color < 0 || color >= p.tokens.length) return false;
-  const availableColor = p.tokens[color];
+  const bonus = rewardBonusesOfPlayer(p);
+
   if (color === Ball.master_ball){
-    return availableColor >= need;
+    const purplePool = p.tokens[Ball.master_ball] + bonus[Ball.master_ball];
+    return purplePool >= need;
   }
-  const availablePurple = p.tokens[Ball.master_ball];
-  return availableColor + availablePurple >= need;
+
+  let remaining = need;
+  const useBonus = Math.min(bonus[color], remaining);
+  remaining -= useBonus;
+
+  const useTokens = Math.min(p.tokens[color], remaining);
+  remaining -= useTokens;
+
+  if (remaining <= 0) return true;
+
+  const purplePool = p.tokens[Ball.master_ball] + bonus[Ball.master_ball];
+  return purplePool >= remaining;
 }
 
 function payEvolutionCost(p, card){
@@ -386,10 +462,22 @@ function payEvolutionCost(p, card){
   let remaining = evoCost.number;
   if (color < 0 || color >= p.tokens.length) return;
 
-  const spendColor = Math.min(p.tokens[color], remaining);
-  p.tokens[color] -= spendColor;
-  state.tokenPool[color] += spendColor;
-  remaining -= spendColor;
+  const bonus = rewardBonusesOfPlayer(p);
+
+  if (color !== Ball.master_ball){
+    const useBonus = Math.min(bonus[color], remaining);
+    remaining -= useBonus;
+
+    const spendColor = Math.min(p.tokens[color], remaining);
+    p.tokens[color] -= spendColor;
+    state.tokenPool[color] += spendColor;
+    remaining -= spendColor;
+  }
+
+  if (remaining > 0){
+    const spendPurpleBonus = Math.min(bonus[Ball.master_ball], remaining);
+    remaining -= spendPurpleBonus;
+  }
 
   if (remaining > 0){
     const spendPurple = Math.min(p.tokens[Ball.master_ball], remaining);
@@ -453,12 +541,16 @@ function animateCardMove(startEl, targetEl, duration = 800){
     transition: `transform ${Math.min(duration, 1000)}ms ease, opacity ${Math.min(duration, 1000)}ms ease`,
     zIndex: 9999,
     margin: "0",
+    opacity: "1",
   });
 
   document.body.appendChild(clone);
   const dx = targetRect.left - startRect.left;
   const dy = targetRect.top - startRect.top;
   const scale = targetRect.width / startRect.width;
+
+  // 强制一次回流，确保过渡生效
+  clone.getBoundingClientRect();
 
   requestAnimationFrame(() => {
     clone.style.transform = `translate(${dx}px, ${dy}px) scale(${scale})`;
@@ -1082,6 +1174,7 @@ function renderHandZone(cards, playerIndex){
       toggleHandSelection(card.id, playerIndex);
       renderPlayers();
       renderHandModal(playerIndex);
+      openCardDetail(card);
     });
     items.appendChild(mini);
   });
@@ -1114,6 +1207,7 @@ function renderReserveZone(cards, playerIndex){
       ui.selectedReservedCard = same ? null : { playerIndex, cardId: card.id };
       renderPlayers();
       renderMarket();
+      openCardDetail(card);
     });
 
     items.appendChild(mini);
@@ -1167,7 +1261,10 @@ function renderCardStack(card, { selectable = false, playerIndex } = {}){
       toggleHandSelection(card.id, playerIndex);
       renderHandModal(playerIndex);
       renderPlayers();
+      openCardDetail(card);
     });
+  } else {
+    stack.addEventListener("click", () => openCardDetail(card));
   }
 
   const main = renderFullCard(card);
@@ -1279,6 +1376,18 @@ function renderHandModal(playerIndex = ui.handPreviewPlayerIndex){
   }
 }
 
+function openCardDetail(card, { title } = {}){
+  if (!card || !el.cardDetailBody || !el.cardDetailModal) return;
+  el.cardDetailBody.innerHTML = "";
+  if (el.cardDetailTitle){
+    el.cardDetailTitle.textContent = title || card.name || "卡牌详情";
+  }
+  const stack = renderCardStack(card, { selectable: false });
+  stack.classList.add("card-detail-stack");
+  el.cardDetailBody.appendChild(stack);
+  showModal(el.cardDetailModal);
+}
+
 function groupCardsByReward(cards){
   const groups = {};
   cards.forEach(card => {
@@ -1337,6 +1446,7 @@ if (el.btnConfirmPlayerCount) el.btnConfirmPlayerCount.addEventListener("click",
 
 if (el.btnCancelPlayerCount) el.btnCancelPlayerCount.addEventListener("click", closeModals);
 if (el.btnCloseHandModal) el.btnCloseHandModal.addEventListener("click", closeModals);
+if (el.btnCloseCardDetailModal) el.btnCloseCardDetailModal.addEventListener("click", closeModals);
 
 if (el.modalOverlay) el.modalOverlay.addEventListener("click", closeModals);
 
