@@ -47,12 +47,16 @@ const el = {
 
   modalOverlay: $("#modalOverlay"),
   confirmNewGameModal: $("#confirmNewGameModal"),
+  victoryModal: $("#victoryModal"),
   playerCountModal: $("#playerCountModal"),
   btnSaveAndNew: $("#btnSaveAndNew"),
   btnNewWithoutSave: $("#btnNewWithoutSave"),
   btnCancelNew: $("#btnCancelNew"),
   btnConfirmPlayerCount: $("#btnConfirmPlayerCount"),
   btnCancelPlayerCount: $("#btnCancelPlayerCount"),
+  btnVictoryConfirm: $("#btnVictoryConfirm"),
+  victoryWinnerName: $("#victoryWinnerName"),
+  victoryDetails: $("#victoryDetails"),
 
   handModal: $("#handModal"),
   handModalTitle: $("#handModalTitle"),
@@ -878,7 +882,32 @@ function resolveVictory(){
 
   const winner = ranking[0];
   state.victoryResolved = true;
-  toast(`终局结算：${winner.player.name} 获胜！（分数：${winner.score}）`);
+  showVictoryModal(winner);
+}
+
+function showVictoryModal(winner){
+  if (!winner){
+    toast("未找到胜利者", { type: "error" });
+    return;
+  }
+
+  if (el.victoryWinnerName){
+    el.victoryWinnerName.textContent = `${winner.player.name} 获胜！`;
+  }
+
+  if (el.victoryDetails){
+    el.victoryDetails.innerHTML = `
+      <div>分数：${winner.score}</div>
+      <div>倒扣手牌：${winner.penalty}</div>
+      <div>奖杯卡牌数：${winner.trophyCards}</div>
+    `;
+  }
+
+  if (el.victoryModal){
+    showModal(el.victoryModal);
+  }else{
+    toast(`终局结算：${winner.player.name} 获胜！（分数：${winner.score}）`);
+  }
 }
 
 // ========== 9) 存档 / 读档 ==========
@@ -1567,6 +1596,10 @@ if (el.btnNewWithoutSave) el.btnNewWithoutSave.addEventListener("click", () => {
 });
 
 if (el.btnCancelNew) el.btnCancelNew.addEventListener("click", closeModals);
+
+if (el.btnVictoryConfirm) el.btnVictoryConfirm.addEventListener("click", () => {
+  showModal(el.playerCountModal);
+});
 
 if (el.btnConfirmPlayerCount) el.btnConfirmPlayerCount.addEventListener("click", async () => {
   const n = Number(el.playerCount.value);

@@ -530,3 +530,5 @@ body.modal-open .app, body.modal-open .topbar { filter: blur(6px); transition: f
 .modal .select { width: 100%; display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; gap: 12px; }
 .modal .select select { flex: 1; padding: 8px; background: rgba(17, 24, 39, 0.6); color: var(--text); border: 1px solid var(--line); border-radius: 8px; }
 .modal-actions { display: flex; flex-wrap: wrap; gap: 8px; justify-content: flex-end; }
+.victory-winner { font-weight: 700; color: var(--text); margin-bottom: 8px; }
+.victory-details { display: grid; gap: 6px; margin-bottom: 10px; color: var(--muted); }
