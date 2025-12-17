@@ -1034,18 +1034,18 @@ function showVictoryModal(winner){
 function saveToLocal(){
   const payload = makeSavePayload();
   localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
-  toast("已存档到本地 localStorage");
+  showStatusMessage("已存档到本地 localStorage");
 }
 
 function loadFromLocal(){
   const raw = localStorage.getItem(STORAGE_KEY);
-  if (!raw) return toast("没有找到本地存档", { type: "error" });
+  if (!raw) return showStatusMessage("没有找到本地存档", { type: "error" });
   try{
     const parsed = JSON.parse(raw);
     applySavePayload(parsed);
-    toast("已从本地读档");
+    showStatusMessage("已从本地读档");
   }catch{
-    toast("读档失败：存档内容损坏", { type: "error" });
+    showStatusMessage("读档失败：存档内容损坏", { type: "error" });
   }
 }
 
@@ -1844,10 +1844,13 @@ function clearSelections(){
 function toast(msg, { type = "info" } = {}){
   console.log("[toast]", msg);
   if (type === "error"){
-    ui.errorMessage = msg;
-    renderErrorBanner();
-    return;
+    return showStatusMessage(msg, { type });
   }
+}
+
+function showStatusMessage(msg, { type = "info" } = {}){
+  ui.errorMessage = msg;
+  renderErrorBanner();
 }
 
 function shuffle(arr){
