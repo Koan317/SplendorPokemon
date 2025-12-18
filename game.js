@@ -637,6 +637,26 @@ function animateCardMove(startEl, targetEl, duration = 800){
   const targetRect = targetEl.getBoundingClientRect();
   if (!startRect.width || !targetRect.width) return Promise.resolve();
 
+  const docStyles = getComputedStyle(document.documentElement);
+  const miniW = parseFloat(docStyles.getPropertyValue("--mini-card-w"));
+  const miniH = parseFloat(docStyles.getPropertyValue("--mini-card-h"));
+
+  const miniZone = targetEl.closest?.(".hand-items, .reserve-items");
+  let targetWidth = targetRect.width;
+  let targetHeight = targetRect.height;
+
+  if (miniZone && miniW && miniH){
+    targetWidth = miniW;
+    targetHeight = miniH;
+  } else {
+    const cardSample = targetEl.querySelector?.(".mini-card, .market-card");
+    const sampleRect = cardSample?.getBoundingClientRect();
+    if (sampleRect?.width && sampleRect?.height){
+      targetWidth = sampleRect.width;
+      targetHeight = sampleRect.height;
+    }
+  }
+
   const startCenter = {
     x: startRect.left + startRect.width / 2,
     y: startRect.top + startRect.height / 2,
@@ -668,8 +688,8 @@ function animateCardMove(startEl, targetEl, duration = 800){
 
   const dx = targetCenter.x - startCenter.x;
   const dy = targetCenter.y - startCenter.y;
-  const scaleX = targetRect.width / startRect.width;
-  const scaleY = targetRect.height / startRect.height;
+  const scaleX = targetWidth / startRect.width;
+  const scaleY = targetHeight / startRect.height;
 
   // 强制一次回流，确保过渡生效
   clone.getBoundingClientRect();
