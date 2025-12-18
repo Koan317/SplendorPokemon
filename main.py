@@ -3,6 +3,7 @@ from __future__ import annotations
 import random
 from dataclasses import dataclass, replace
 from typing import List, Optional, Callable, Dict, Tuple
+from collections import deque, defaultdict
 
 
 # ============================================================
@@ -103,323 +104,402 @@ def _check_winner(state: GameState, actor: str, new_pos: int) -> Optional[str]:
 
 
 # ============================================================
-# Evaluation (kept for backward compatibility / fallbacks)
+# Heuristic (used only in weaker AIs / tie-breaks)
 # ============================================================
 
 def evaluate_state(state: GameState, perspective: str) -> float:
-    """Simple heuristic (legacy)."""
+    """
+    A slightly smarter heuristic than the original:
+    - progress to goal
+    - distance to opponent (collision threats)
+    - mild preference for having tempo (being able to threaten collision next)
+    """
     if state.winner == perspective:
         return 1.0
     if state.winner and state.winner != perspective:
         return -1.0
 
+    n = state.grid_size - 1
     if perspective == "player":
-        return state.player_pos / (state.grid_size - 1)
+        my = state.player_pos
+        op = state.opponent_pos
+        my_prog = my / n
+        op_prog = (n - op) / n
     else:
-        return (state.grid_size - 1 - state.opponent_pos) / (state.grid_size - 1)
+        my = state.opponent_pos
+        op = state.player_pos
+        my_prog = (n - my) / n
+        op_prog = op / n
+
+    dist = abs(state.player_pos - state.opponent_pos)
+    # closer increases tactical volatility; prefer being the one who is closer to scoring
+    score = (my_prog - 0.85 * op_prog)
+    score += 0.12 * (1.0 / max(1, dist))  # tactical value
+
+    return max(-1.0, min(1.0, score))
 
 
 # ============================================================
-# Perfect Solver (Win/Lose/Draw) + Depth guidance
+# Perfect Solver (Retrograde analysis: Win/Lose/Draw with cycles)
 # ============================================================
 
-StateKey = Tuple[int, int, str]  # (player_pos, opponent_pos, current_player)
+StateKey = Tuple[int, int, int]  # (player_pos, opponent_pos, turn) where turn: 0=player, 1=opponent
+Outcome = int  # +1 win for current mover, 0 draw, -1 loss for current mover
 
-# outcome from the viewpoint of state.current_player:
-# +1 = current player can force a win
-#  0 = current player can force at least a draw (or game is draw with best play)
-# -1 = current player will lose with best opponent play
-Outcome = int
 
-# steps:
-# - for winning states: minimal steps to force a win (assuming opponent delays)
-# - for losing states: maximal steps to delay loss (assuming current tries to delay)
-# - for draw states: a soft "progress" metric (optional, used only for tie-breaks)
-Steps = int
+def _turn_id(current_player: str) -> int:
+    return 0 if current_player == "player" else 1
+
+
+def _player_of_turn(turn: int) -> str:
+    return "player" if turn == 0 else "opponent"
 
 
 class SolverCache:
-    """Caches solved tables per grid_size."""
     def __init__(self) -> None:
-        self._tables: Dict[int, Tuple[Dict[StateKey, Outcome], Dict[StateKey, Steps]]] = {}
+        self._tables: Dict[int, Tuple[Dict[StateKey, Outcome], Dict[StateKey, int]]] = {}
 
-    def get(self, grid_size: int) -> Tuple[Dict[StateKey, Outcome], Dict[StateKey, Steps]]:
+    def get(self, grid_size: int) -> Tuple[Dict[StateKey, Outcome], Dict[StateKey, int]]:
         if grid_size not in self._tables:
-            self._tables[grid_size] = solve_game_tables(grid_size)
+            self._tables[grid_size] = _solve_tables(grid_size)
         return self._tables[grid_size]
 
 
-_SOLVER_CACHE = SolverCache()
+_SOLVER = SolverCache()
 
 
-def solve_game_tables(grid_size: int) -> Tuple[Dict[StateKey, Outcome], Dict[StateKey, Steps]]:
+def _solve_tables(grid_size: int) -> Tuple[Dict[StateKey, Outcome], Dict[StateKey, int]]:
     """
-    Solve all reachable non-terminal states for a given grid_size using retrograde analysis.
-    Correctly handles cycles => draw.
+    Solve all non-terminal states for a given grid_size.
+
+    Produces:
+    - outcome[key]: +1 / 0 / -1 from viewpoint of side-to-move in that key
+    - dist[key]: for winning states: minimal plies to force win
+                for losing states: maximal plies to delay loss
+                for draw states: a pressure heuristic (bigger=better for side-to-move)
     """
-    # Build all non-terminal states (positions cannot be equal in a non-terminal state)
-    states: List[StateKey] = []
+    keys: List[StateKey] = []
     for p in range(grid_size):
         for o in range(grid_size):
             if p == o:
                 continue
-            states.append((p, o, "player"))
-            states.append((p, o, "opponent"))
+            keys.append((p, o, 0))
+            keys.append((p, o, 1))
 
-    # Precompute successors and predecessors
+    # Build successor lists and predecessor lists
     succ: Dict[StateKey, List[Tuple[Optional[StateKey], bool]]] = {}
-    # each successor entry: (next_state_key or None if terminal, is_immediate_win_for_mover)
-    pred: Dict[StateKey, List[StateKey]] = {s: [] for s in states}
+    pred: Dict[StateKey, List[StateKey]] = {k: [] for k in keys}
+    outdeg: Dict[StateKey, int] = {}
 
-    # outcome table initialization
-    outcome: Dict[StateKey, Outcome] = {s: 0 for s in states}  # 0 means unknown for now (not draw yet)
-    known: Dict[StateKey, bool] = {s: False for s in states}
-
-    # remaining moves count for loss propagation
+    # Retrograde structures
+    outcome: Dict[StateKey, Outcome] = {k: 0 for k in keys}
+    known: Dict[StateKey, bool] = {k: False for k in keys}
     remaining: Dict[StateKey, int] = {}
 
-    # queue for propagation
-    queue: List[StateKey] = []
+    q = deque()
 
-    for s in states:
-        p, o, cp = s
-        gs = GameState(grid_size=grid_size, player_pos=p, opponent_pos=o, current_player=cp)
+    for k in keys:
+        p, o, t = k
+        gs = GameState(grid_size=grid_size, player_pos=p, opponent_pos=o, current_player=_player_of_turn(t))
         actions = get_legal_actions(gs)
 
-        s_succ: List[Tuple[Optional[StateKey], bool]] = []
+        s_list: List[Tuple[Optional[StateKey], bool]] = []
         immediate_win = False
 
         for a in actions:
             ns = apply_action(gs, a)
             if ns.is_terminal:
-                # terminal winner is always the mover in this ruleset
                 immediate_win = True
-                s_succ.append((None, True))
+                s_list.append((None, True))
             else:
-                nk: StateKey = (ns.player_pos, ns.opponent_pos, ns.current_player)
-                s_succ.append((nk, False))
-                pred[nk].append(s)
+                nk = (ns.player_pos, ns.opponent_pos, _turn_id(ns.current_player))
+                s_list.append((nk, False))
+                pred[nk].append(k)
 
-        succ[s] = s_succ
+        succ[k] = s_list
+        outdeg[k] = sum(1 for nk, _ in s_list if nk is not None)
 
         if immediate_win:
-            # If you have a move that wins immediately, this state is winning.
-            outcome[s] = +1
-            known[s] = True
-            queue.append(s)
+            outcome[k] = +1
+            known[k] = True
+            q.append(k)
         else:
-            # Only count non-terminal successors (terminal successors already handled above)
-            remaining[s] = sum(1 for (nk, iswin) in s_succ if nk is not None)
+            remaining[k] = outdeg[k]
 
-    # Retrograde propagation:
-    # If a state is losing for the player to move, all predecessors are winning (they can move into it).
-    # If a state is winning for player to move, predecessors lose one "hope"; if all successors are winning for next player => predecessor is losing.
-    while queue:
-        s = queue.pop(0)
-        s_val = outcome[s]
-        for ps in pred[s]:
-            if known[ps]:
+    # Retrograde propagation
+    while q:
+        k = q.popleft()
+        k_val = outcome[k]
+
+        for pk in pred[k]:
+            if known[pk]:
                 continue
 
-            if s_val == -1:
-                # predecessor can move to a losing state for the opponent -> predecessor is winning
-                outcome[ps] = +1
-                known[ps] = True
-                queue.append(ps)
-            elif s_val == +1:
-                # predecessor moved into a winning state for the opponent, reduces options
-                remaining[ps] -= 1
-                if remaining[ps] <= 0:
-                    outcome[ps] = -1
-                    known[ps] = True
-                    queue.append(ps)
+            if k_val == -1:
+                # if you can move to a state where opponent-to-move is losing => you are winning
+                outcome[pk] = +1
+                known[pk] = True
+                q.append(pk)
+            elif k_val == +1:
+                # this successor is winning for opponent; reduce remaining "hope"
+                remaining[pk] -= 1
+                if remaining[pk] <= 0:
+                    outcome[pk] = -1
+                    known[pk] = True
+                    q.append(pk)
 
-    # Any still-unknown state is draw (0)
-    for s in states:
-        if not known[s]:
-            outcome[s] = 0
+    # Unknown => draw
+    for k in keys:
+        if not known[k]:
+            outcome[k] = 0
 
-    # Now compute step guidance tables for better move selection:
-    # - win_steps: minimal steps to force a win (opponent delays)
-    # - lose_steps: maximal steps to delay loss
-    # For draws, we use a mild heuristic (progress-to-goal) to break ties.
-    steps: Dict[StateKey, Steps] = {}
+    # Distance/pressure guidance
+    dist: Dict[StateKey, int] = {}
 
-    # Initialize steps for known terminal-adjacent wins:
-    # If state is winning and has an immediate win move => steps = 1
-    for s in states:
-        if outcome[s] != +1:
+    # initialize trivial win distance: if immediate win exists => 1
+    for k in keys:
+        if outcome[k] != +1:
             continue
-        if any(iswin for (_nk, iswin) in succ[s]):
-            steps[s] = 1
+        if any(iswin for (_nk, iswin) in succ[k]):
+            dist[k] = 1
 
-    # Iteratively relax until stable (state space is tiny)
-    changed = True
+    # iterative relaxation (tiny state space)
     for _ in range(2000):
-        if not changed:
-            break
         changed = False
-        for s in states:
-            val = outcome[s]
-            p, o, cp = s
-
+        for k in keys:
+            val = outcome[k]
             if val == +1:
-                # Winning: choose a move to a losing state for opponent, minimizing time-to-win
-                candidates: List[int] = []
-                gs = GameState(grid_size=grid_size, player_pos=p, opponent_pos=o, current_player=cp)
-                for a in get_legal_actions(gs):
-                    ns = apply_action(gs, a)
-                    if ns.is_terminal:
-                        candidates.append(1)
-                    else:
-                        nk = (ns.player_pos, ns.opponent_pos, ns.current_player)
-                        if outcome[nk] == -1:
-                            # opponent is losing at nk; they will try to delay our win
-                            # so we take 1 + (their best delay), which is steps[nk] if computed as lose-steps
-                            # if not available yet, skip for now
-                            if nk in steps:
-                                candidates.append(1 + steps[nk])
-
-                if candidates:
-                    newv = min(candidates)
-                    if steps.get(s) != newv:
-                        steps[s] = newv
+                # choose move to a losing state for opponent with minimal steps
+                cands = []
+                for nk, iswin in succ[k]:
+                    if iswin:
+                        cands.append(1)
+                        continue
+                    if nk is None:
+                        continue
+                    if outcome[nk] == -1 and nk in dist:
+                        cands.append(1 + dist[nk])
+                if cands:
+                    newv = min(cands)
+                    if dist.get(k) != newv:
+                        dist[k] = newv
                         changed = True
 
             elif val == -1:
-                # Losing: choose a move that maximizes time-to-loss (delay defeat)
-                candidates = []
-                gs = GameState(grid_size=grid_size, player_pos=p, opponent_pos=o, current_player=cp)
-                for a in get_legal_actions(gs):
-                    ns = apply_action(gs, a)
-                    if ns.is_terminal:
-                        # immediate loss for mover would be terminal for mover? In this ruleset, mover wins terminal,
-                        # so terminal here cannot be loss for mover. keep safe:
+                # choose move to opponent-winning state, but maximize steps to delay loss
+                cands = []
+                for nk, iswin in succ[k]:
+                    if iswin:
+                        # cannot be immediate loss because mover wins terminal under these rules
                         continue
-                    nk = (ns.player_pos, ns.opponent_pos, ns.current_player)
-                    # from nk, opponent to move; if nk is winning for them, then our loss is coming.
-                    if outcome[nk] == +1:
-                        if nk in steps:
-                            candidates.append(1 + steps[nk])
-
-                if candidates:
-                    newv = max(candidates)
-                    if steps.get(s) != newv:
-                        steps[s] = newv
+                    if nk is None:
+                        continue
+                    if outcome[nk] == +1 and nk in dist:
+                        cands.append(1 + dist[nk])
+                if cands:
+                    newv = max(cands)
+                    if dist.get(k) != newv:
+                        dist[k] = newv
                         changed = True
 
             else:
-                # Draw: store a small heuristic score for tie-break (not a "steps to outcome")
-                # Higher is better for current player: prefer progress towards own goal and away from opponent goal.
-                # This is only for selecting among draw-preserving moves.
-                if s not in steps:
-                    # normalize into small int range
-                    if cp == "player":
-                        prog = p
-                        opp_prog = (grid_size - 1 - o)
+                # draw: pressure heuristic for tie-break
+                if k not in dist:
+                    p, o, t = k
+                    # for side-to-move, progress vs opponent progress
+                    if t == 0:  # player to move
+                        my_prog = p
+                        op_prog = (grid_size - 1 - o)
                     else:
-                        prog = (grid_size - 1 - o)
-                        opp_prog = p
-                    steps[s] = int((prog - opp_prog) * 10)
+                        my_prog = (grid_size - 1 - o)
+                        op_prog = p
+                    d = abs(p - o)
+                    # bigger is better: more progress, closer tactical tension, and being "ahead"
+                    dist[k] = int((my_prog - op_prog) * 20 - d * 2)
+        if not changed:
+            break
 
-    # For any missing step value in win/lose states (rare), fallback to 0
-    for s in states:
-        if s not in steps:
-            steps[s] = 0
+    for k in keys:
+        if k not in dist:
+            dist[k] = 0
 
-    return outcome, steps
+    return outcome, dist
 
 
-def _rank_actions_for_state(state: GameState) -> List[Tuple[str, Outcome, int]]:
+# ============================================================
+# Move ranking (the "personality" of strong AIs is here)
+# ============================================================
+
+def _state_key_from_state(s: GameState) -> StateKey:
+    return (s.player_pos, s.opponent_pos, _turn_id(s.current_player))
+
+
+def _opponent_branching(s: GameState) -> int:
+    """How many legal replies the next player has."""
+    return len(get_legal_actions(s))
+
+
+def _pressure_metric(s: GameState, me: str) -> int:
     """
-    Return list of (action, resulting_outcome_for_current_player, guidance_steps)
-    sorted best-first for current_player.
+    Higher = feels more 'dominant':
+    - reduce opponent branching
+    - keep tactical tension (distance small but not suicidal)
+    - keep opponent away from their goal
     """
-    outcome_table, steps_table = _SOLVER_CACHE.get(state.grid_size)
+    n = s.grid_size - 1
+    if me == "player":
+        my = s.player_pos
+        op = s.opponent_pos
+        my_to_goal = n - my
+        op_to_goal = op
+    else:
+        my = s.opponent_pos
+        op = s.player_pos
+        my_to_goal = my
+        op_to_goal = n - op
+
+    d = abs(s.player_pos - s.opponent_pos)
+    # branching reduction: fewer choices for opponent feels oppressive
+    br = _opponent_branching(s)
+    # pressure likes: opponent far from goal, me closer; tactical distance small-ish
+    return int((op_to_goal - my_to_goal) * 10 - br * 6 - d * 2)
+
+
+def _rank_actions(
+    state: GameState,
+    style: str,
+    rng: random.Random,
+) -> List[Tuple[str, int, int, int]]:
+    """
+    Returns list of tuples:
+        (action, outcome_for_me, dist_score, pressure_score)
+    sorted best-first according to style.
+
+    outcome_for_me: +1 win / 0 draw / -1 loss from the viewpoint of state.current_player
+    dist_score: for win => smaller is better (faster mate)
+               for loss => larger is better (delay)
+               for draw => larger is better (positional pressure heuristic)
+    pressure_score: larger is more oppressive / constricting
+    """
+    outcome_table, dist_table = _SOLVER.get(state.grid_size)
     me = state.current_player
+    base_key = _state_key_from_state(state)
 
-    scored: List[Tuple[str, Outcome, int]] = []
+    ranked = []
+
     for a in get_legal_actions(state):
         ns = apply_action(state, a)
         if ns.is_terminal:
-            # mover wins
-            scored.append((a, +1, 1))
+            ranked.append((a, +1, 1, 10_000))
             continue
 
-        nk: StateKey = (ns.player_pos, ns.opponent_pos, ns.current_player)
-        # outcome_table[nk] is from viewpoint of ns.current_player (the opponent of 'me')
-        # so from 'me' viewpoint it's negated
-        o_for_me: Outcome = -outcome_table[nk]
-        # guidance:
-        # for winning: prefer smaller steps
-        # for losing: prefer larger steps (delay)
-        # for draw: use steps_table directly
-        guide = steps_table[nk]
-        scored.append((a, o_for_me, guide))
+        nk = _state_key_from_state(ns)
+        # outcome_table[nk] is from viewpoint of ns.current_player (opponent of me),
+        # so for me it's negated:
+        out_for_me = -outcome_table[nk]
 
-    # Sort rule:
-    # 1) higher outcome (+1 > 0 > -1)
-    # 2) if outcome == +1: smaller guide better
-    # 3) if outcome == -1: larger guide better
-    # 4) if outcome == 0: larger guide better (heuristic)
-    def key_fn(item: Tuple[str, Outcome, int]) -> Tuple[int, int]:
-        _, o, g = item
-        primary = o
-        if o == +1:
-            secondary = -g  # smaller steps -> larger -g
-        else:
-            secondary = g   # draw prefer higher heuristic; lose prefer larger delay
-        return (primary, secondary)
+        # dist guidance
+        g = dist_table[nk]
 
-    scored.sort(key=key_fn, reverse=True)
-    return scored
+        # pressure
+        pscore = _pressure_metric(ns, me)
+
+        ranked.append((a, out_for_me, g, pscore))
+
+    # Sorting styles
+    def sort_key(item: Tuple[str, int, int, int]) -> Tuple[int, int, int]:
+        _a, out, g, ps = item
+
+        # Primary: outcome
+        primary = out
+
+        if style == "dominator":
+            # Win fast, and among equal outcomes prefer higher pressure (constrict replies).
+            if out == +1:
+                # faster win first, then pressure
+                return (primary, -g, ps)
+            if out == 0:
+                # draw: maximize pressure, then g
+                return (primary, ps, g)
+            # losing: maximize delay, and try to keep pressure traps
+            return (primary, g, ps)
+
+        if style == "pragmatic":
+            # Strong humanlike: preserve best outcome; in draws prefer *complex* lines:
+            # more branching for opponent can increase their chance to err.
+            # We'll encode that indirectly by preferring slightly lower pressure in draws.
+            if out == +1:
+                return (primary, -g, ps)
+            if out == 0:
+                # draw: prefer lines with LOWER pressure (more freedom = more chances for mistakes)
+                return (primary, -ps, g)
+            return (primary, g, ps)
+
+        if style == "simple":
+            # Simple: basically outcome then heuristic only
+            if out == +1:
+                return (primary, -g, 0)
+            if out == 0:
+                return (primary, g, 0)
+            return (primary, g, 0)
+
+        # default
+        if out == +1:
+            return (primary, -g, ps)
+        if out == 0:
+            return (primary, g, ps)
+        return (primary, g, ps)
+
+    ranked.sort(key=sort_key, reverse=True)
+    return ranked
 
 
-def perfect_policy(state: GameState) -> str:
-    """Best play (win if possible, else draw if possible, else delay)."""
-    ranked = _rank_actions_for_state(state)
-    return ranked[0][0]
-
-
-def strong_humanlike_policy(state: GameState, temperature: float, rng: random.Random) -> str:
+def _soft_pick(
+    candidates: List[Tuple[str, int, int, int]],
+    outcome_preference: int,
+    temperature: float,
+    rng: random.Random,
+    draw_prefers_complexity: bool,
+) -> str:
     """
-    Strong play with controlled variability:
-    - Never intentionally choose a losing move if a win/draw is available.
-    - Within the best outcome class, sample using a soft preference (temperature).
-    This makes the AI feel less robotic while staying very strong.
-    """
-    ranked = _rank_actions_for_state(state)
-    if not ranked:
-        return random.choice(get_legal_actions(state))
+    Pick among candidates of the best outcome class with a soft preference.
+    temperature high => more variety; low => more deterministic.
 
-    # Partition by best outcome
-    best_outcome = ranked[0][1]
-    pool = [x for x in ranked if x[1] == best_outcome]
+    draw_prefers_complexity:
+        - True: among draws, prefer lower pressure / higher branching (more human mistakes)
+        - False: among draws, prefer higher pressure (more constricting)
+    """
+    if not candidates:
+        raise ValueError("No candidates to pick from")
+
+    best_outcome = candidates[0][1]
+    pool = [c for c in candidates if c[1] == best_outcome]
 
     if len(pool) == 1:
         return pool[0][0]
 
-    # Convert (outcome, guide) to weights within the pool
-    # For wins: prefer smaller guide (faster win)
-    # For draws: prefer larger guide (better position)
-    # For losses: prefer larger guide (delay)
+    t = max(1e-6, temperature)
+
+    # Convert each item to a scalar score
     scores = []
-    for (_a, o, g) in pool:
-        if o == +1:
-            # invert: smaller g => larger score
-            s = -g
+    for (_a, out, g, ps) in pool:
+        if out == +1:
+            # faster win better; add pressure a bit
+            s = (-g * 3.0) + (ps * 0.15)
+        elif out == 0:
+            # draw: either prefer complexity (lower pressure) or dominance (higher pressure)
+            s = ((-ps) if draw_prefers_complexity else ps) * 0.8 + g * 0.15
         else:
-            s = g
+            # losing: delay loss
+            s = g * 1.2 + ps * 0.05
         scores.append(s)
 
-    # Softmax with temperature (higher temperature => more randomness)
-    t = max(1e-6, temperature)
     m = max(scores)
-    exps = [pow(2.718281828, (s - m) / t) for s in scores]
-    total = sum(exps)
+    weights = [pow(2.718281828, (s - m) / t) for s in scores]
+    total = sum(weights)
     r = rng.random() * total
     acc = 0.0
-    for i, w in enumerate(exps):
+    for i, w in enumerate(weights):
         acc += w
         if acc >= r:
             return pool[i][0]
@@ -427,86 +507,138 @@ def strong_humanlike_policy(state: GameState, temperature: float, rng: random.Ra
 
 
 # ============================================================
-# AI Policies (public API compatible)
+# AI Policies (difficulty personas)
 # ============================================================
 
 def random_policy(state: GameState) -> str:
-    """Baseline random policy."""
     return random.choice(get_legal_actions(state))
 
 
-def greedy_depth2_policy(state: GameState) -> str:
-    """Legacy policy (kept as fallback / easiest tiers)."""
+def weak_greedy_policy(state: GameState, rng: random.Random) -> str:
+    """
+    Very human-beginner-like:
+    - loves moving toward goal
+    - often ignores tactical collision threats
+    """
     me = state.current_player
-    best_score = -1e9
-    best_action = None
+    actions = get_legal_actions(state)
+    scored = []
+    for a in actions:
+        ns = apply_action(state, a)
+        s = evaluate_state(ns, me)
+        # add noise and goal-hunger bias
+        s += rng.uniform(-0.25, 0.25)
+        scored.append((s, a))
+    scored.sort(reverse=True)
+    return scored[0][1]
 
-    for action in get_legal_actions(state):
-        s1 = apply_action(state, action)
 
-        if s1.is_terminal:
-            score = evaluate_state(s1, me)
+def depth_limited_minimax(state: GameState, depth: int, rng: random.Random) -> str:
+    """
+    Depth-limited minimax with heuristic eval. Handles cycles by depth cutoff only (weaker than solver).
+    Good for mid-low difficulties.
+    """
+    me = state.current_player
+
+    def rec(s: GameState, d: int) -> float:
+        if s.is_terminal:
+            return 1.0 if s.winner == me else -1.0
+        if d <= 0:
+            return evaluate_state(s, me)
+
+        acts = get_legal_actions(s)
+        if s.current_player == me:
+            best = -1e9
+            for a in acts:
+                best = max(best, rec(apply_action(s, a), d - 1))
+            return best
         else:
-            score = min(
-                evaluate_state(apply_action(s1, reply), me)
-                for reply in get_legal_actions(s1)
-            )
+            worst = 1e9
+            for a in acts:
+                worst = min(worst, rec(apply_action(s, a), d - 1))
+            return worst
 
-        if score > best_score:
-            best_score = score
-            best_action = action
-
-    return best_action
+    acts = get_legal_actions(state)
+    scored = []
+    for a in acts:
+        v = rec(apply_action(state, a), depth - 1)
+        # tiny noise to avoid robotic ties at low levels
+        v += rng.uniform(-0.02, 0.02)
+        scored.append((v, a))
+    scored.sort(reverse=True)
+    return scored[0][1]
 
 
 def ai_with_difficulty(state: GameState, level: int) -> Optional[str]:
     """
-    Difficulty-controlled AI with an option to turn it off.
+    level: -1 (disabled) | 0..4
 
-    level: -1 (disabled) | 0 (easiest) ~ 4 (hardest)
-
-    Guarantee goal for level=2:
-    - Strong enough to be competitive with a rules-savvy human (roughly parity),
-      by playing draw/win-safe and sampling among best lines with mild variability.
+    Design goals:
+    - level 0: beginner (obvious mistakes)
+    - level 1: novice (some lookahead, still blunders)
+    - level 2: standard (strong, parity vs strong human)
+    - level 3: hard (near-perfect, punishes)
+    - level 4: dominator (perfect-ish + oppressive line selection)
     """
     if level == -1:
         return None
-
     if not 0 <= level <= 4:
         raise ValueError("Difficulty level must be between 0 and 4")
 
-    # Use a deterministic RNG seeded by the current state to keep "fair but stable" behavior:
-    # This avoids feeling like coin-flip cheating while still adding variability.
-    seed = (state.grid_size * 1000
-            + state.player_pos * 100
-            + state.opponent_pos * 10
-            + (0 if state.current_player == "player" else 1))
+    # Deterministic-ish per-position RNG (feels fair; no "cheating dice" across runs)
+    seed = (
+        state.grid_size * 1000003
+        + state.player_pos * 1009
+        + state.opponent_pos * 917
+        + (0 if state.current_player == "player" else 1) * 131
+        + level * 271
+    )
     rng = random.Random(seed)
 
+    # Difficulty 0: mostly random + greedy toward goal
     if level == 0:
-        # Very weak: mostly random
-        if rng.random() < 0.85:
+        if rng.random() < 0.65:
             return random_policy(state)
-        return greedy_depth2_policy(state)
+        return weak_greedy_policy(state, rng)
 
+    # Difficulty 1: shallow minimax but still blunders sometimes
     if level == 1:
-        # Weak: greedy with frequent blunders
-        if rng.random() < 0.35:
+        if rng.random() < 0.18:
             return random_policy(state)
-        return greedy_depth2_policy(state)
+        if rng.random() < 0.25:
+            return weak_greedy_policy(state, rng)
+        return depth_limited_minimax(state, depth=3, rng=rng)
 
+    # Difficulty 2: strong "humanlike killer"
+    # - NEVER throws away a win or a draw if it has it (uses solved outcomes),
+    # - BUT among drawable lines, prefers complexity (more chances for YOU to slip).
     if level == 2:
-        # Standard (target): strong, win/draw-safe, mildly non-robotic
-        # Temperature tuned so it doesn't always pick the same perfect line,
-        # but it will not throw away a win or a draw.
-        return strong_humanlike_policy(state, temperature=1.2, rng=rng)
+        ranked = _rank_actions(state, style="pragmatic", rng=rng)
+        # mild variety; strong but not robotic
+        return _soft_pick(
+            ranked,
+            outcome_preference=+1,
+            temperature=1.05,
+            rng=rng,
+            draw_prefers_complexity=True,
+        )
 
+    # Difficulty 3: near-perfect, low randomness, prefers dominance even in draws
     if level == 3:
-        # Hard: near-perfect, low randomness
-        return strong_humanlike_policy(state, temperature=0.35, rng=rng)
+        ranked = _rank_actions(state, style="dominator", rng=rng)
+        return _soft_pick(
+            ranked,
+            outcome_preference=+1,
+            temperature=0.25,
+            rng=rng,
+            draw_prefers_complexity=False,
+        )
 
-    # level == 4 (hardest): perfect/solved
-    return perfect_policy(state)
+    # Difficulty 4: "Dominator" (oppressive perfect play)
+    # - deterministic best line selection
+    # - fastest wins, strongest constriction in draws
+    ranked = _rank_actions(state, style="dominator", rng=rng)
+    return ranked[0][0]
 
 
 # ============================================================
@@ -518,34 +650,28 @@ def run_match(
     ai_opponent: Callable[[GameState], str],
     games: int = 50,
 ) -> dict:
-    """Run AI vs AI matches and return win statistics."""
-    results = {"player": 0, "opponent": 0}
+    results = {"player": 0, "opponent": 0, "draw": 0}
 
     for seed in range(games):
         random.seed(seed)
         state = create_initial_state()
 
-        # Safety cap: prevent infinite loops in draw-ish lines
-        # (solver will treat those as drawable, but runner must terminate)
-        max_plies = 500
-
+        # cap to avoid infinite loops in drawable positions
+        max_plies = 600
         plies = 0
+
         while not state.is_terminal and plies < max_plies:
             if state.current_player == "player":
                 action = ai_player(state)
             else:
                 action = ai_opponent(state)
-
             state = apply_action(state, action)
             plies += 1
 
         if state.is_terminal:
             results[state.winner] += 1
         else:
-            # Treat non-terminated within cap as a draw; count half-half to avoid bias.
-            # Keep results dict compatible (no new keys).
-            results["player"] += 0
-            results["opponent"] += 0
+            results["draw"] += 1
 
     return results
 
@@ -555,22 +681,31 @@ def run_match(
 # ============================================================
 
 def main() -> None:
-    print("Testing difficulty levels (AI as player vs AI-random opponent):")
+    print("AI vs Random baseline (200 games each):")
     for level in range(5):
-        result = run_match(
+        r = run_match(
             lambda s, lv=level: ai_with_difficulty(s, lv) or "stay",
             random_policy,
             games=200,
         )
-        print(f"AI level {level}: {result}")
+        print(f"Level {level}: {r}")
 
-    print("\nQuick sanity: level 4 vs level 4 (should be stable / mostly draws depending on solvability):")
-    result = run_match(
+    print("\nHardness ladder (AI level X as player vs AI level X-1 as opponent):")
+    for level in range(1, 5):
+        r = run_match(
+            lambda s, lv=level: ai_with_difficulty(s, lv) or "stay",
+            lambda s, lv=level - 1: ai_with_difficulty(s, lv) or "stay",
+            games=200,
+        )
+        print(f"Level {level} vs Level {level-1}: {r}")
+
+    print("\nTop-tier sanity (Level4 vs Level4):")
+    r = run_match(
         lambda s: ai_with_difficulty(s, 4) or "stay",
         lambda s: ai_with_difficulty(s, 4) or "stay",
-        games=50,
+        games=80,
     )
-    print(f"Level4 vs Level4: {result}")
+    print(f"Level4 vs Level4: {r}")
 
 
 if __name__ == "__main__":
