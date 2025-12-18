@@ -361,6 +361,9 @@ body {
 .player-name { font-weight: 700; display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
 .player-name .starter { color: #fbbf24; }
 .player-name .pip { padding: 2px 6px; border-radius: 8px; background: rgba(148, 163, 184, 0.16); color: #cbd5e1; font-size: 12px; }
+.player-name .ai-difficulty-select { display: inline-flex; align-items: center; gap: 4px; }
+.player-name .ai-difficulty-select select { background: transparent; color: #e2e8f0; border: 1px solid rgba(148,163,184,0.35); border-radius: 6px; padding: 2px 4px; font-size: 12px; }
+.player-name .ai-difficulty-select select:focus { outline: none; border-color: rgba(59,130,246,0.6); box-shadow: 0 0 0 1px rgba(59,130,246,0.4); }
 
 .zonegrid {
     display: grid;

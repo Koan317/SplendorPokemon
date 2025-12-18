@@ -99,6 +99,7 @@ let ui = {
   handPreviewPlayerIndex: null,
   errorMessage: "",
   tokenReturn: null,              // { playerIndex, required, selected: number[6] }
+  aiPending: false,
 };
 
 let cardLibraryData = null;
@@ -139,6 +140,23 @@ function ensurePerTurnDefaults(){
   if (!state.perTurn) state.perTurn = { evolved: false, primaryAction: null };
   if (state.perTurn.evolved === undefined) state.perTurn.evolved = false;
   if (state.perTurn.primaryAction === undefined) state.perTurn.primaryAction = null;
+}
+
+function normalizeDifficulty(value){
+  const num = Number(value);
+  if (Number.isInteger(num) && num >= 0 && num <= 4){
+    return num;
+  }
+  if (typeof value === "string"){
+    const mapping = { easy: 0, normal: 2, hard: 4 };
+    const mapped = mapping[value.toLowerCase()];
+    if (mapped !== undefined) return mapped;
+  }
+  const parsed = parseInt(value, 10);
+  if (!Number.isNaN(parsed) && parsed >= 0 && parsed <= 4){
+    return parsed;
+  }
+  return 2;
 }
 
 function getPrimaryActionLabel(key){
@@ -228,6 +246,7 @@ async function newGame(playerCount){
       hand: [],      // bought/captured cards on table
       reserved: [],  // reserved cards
       tokens: [0,0,0,0,0,0], // counts by color
+      difficulty: 2,
     });
   }
   state.players[0].isStarter = true;
@@ -240,6 +259,7 @@ async function newGame(playerCount){
 
   clearSelections();
   renderAll();
+  maybeHandleAiTurn();
 }
 
 // token 数量按人数
@@ -304,6 +324,10 @@ function findMarketCard(cardId){
 
 // ========== 6) 规则工具 ==========
 function currentPlayer(){ return state.players[state.currentPlayerIndex]; }
+
+function isAiPlayerIndex(idx){
+  return Number.isInteger(idx) && idx > 0;
+}
 
 function totalTokensOfPlayer(p){
   return p.tokens.reduce((a,b)=>a+b,0);
@@ -953,6 +977,72 @@ function endTurn(){
 
   clearSelections();
   renderAll();
+  maybeHandleAiTurn();
+}
+
+function serializeStateForAi(gameState){
+  const aiPlayer = gameState.players?.[gameState.currentPlayerIndex];
+  const difficulty = normalizeDifficulty(aiPlayer?.difficulty ?? 2);
+  return JSON.stringify({
+    ...gameState,
+    difficulty,
+    aiLevel: difficulty,
+  });
+}
+
+async function requestAiAction(gameState){
+  const body = serializeStateForAi(gameState);
+  const res = await fetch("/py/decide_action", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body,
+  });
+
+  if (!res.ok){
+    throw new Error(`AI 请求失败（${res.status}）`);
+  }
+
+  const data = await res.json();
+  return data?.action;
+}
+
+function applyAction(action){
+  if (!action) return;
+
+  const normalized = typeof action === "string" ? { type: action } : action;
+  const type = normalized.type || normalized.action;
+
+  switch(type){
+    case "endTurn":
+    case "end_turn":
+      endTurn();
+      break;
+    default:
+      console.warn("未处理的 AI 行动", normalized);
+  }
+}
+
+function maybeHandleAiTurn(){
+  const player = currentPlayer();
+  if (!player) return;
+  if (!isAiPlayerIndex(state.currentPlayerIndex)) return;
+  if (state.victoryResolved) return;
+  if (ui.aiPending) return;
+
+  ui.aiPending = true;
+  requestAiAction(state)
+    .then(action => {
+      if (action){
+        applyAction(action);
+      }
+    })
+    .catch(err => {
+      console.error("AI 请求失败", err);
+      toast(`AI 行动失败：${err?.message || err}`, { type: "error" });
+    })
+    .finally(() => {
+      ui.aiPending = false;
+    });
 }
 
 // ========== 8) 终局触发（≥18 奖杯） ==========
@@ -1069,7 +1159,8 @@ function makeSavePayload(){
       isStarter: p.isStarter,
       hand: p.hand,
       reserved: p.reserved,
-      tokens: p.tokens
+      tokens: p.tokens,
+      difficulty: normalizeDifficulty(p.difficulty ?? 2)
     }))
   };
 }
@@ -1120,6 +1211,7 @@ function applySavePayload(payload){
     hand: Array.isArray(p.hand) ? p.hand : [],
     reserved: Array.isArray(p.reserved) ? p.reserved : [],
     tokens: Array.isArray(p.tokens) && p.tokens.length===6 ? p.tokens : [0,0,0,0,0,0],
+    difficulty: normalizeDifficulty(p.difficulty ?? p.aiDifficulty ?? 2),
   }));
 
   // 兜底：至少一个起始玩家
@@ -1129,6 +1221,7 @@ function applySavePayload(payload){
 
   clearSelections();
   renderAll();
+  maybeHandleAiTurn();
 }
 
 // ========== 10) 渲染 ==========
@@ -1428,13 +1521,38 @@ function renderPlayers(){
 
     const name = document.createElement("div");
     name.className = "player-name";
-    name.innerHTML = `
-      ${p.isStarter ? `<span class="starter" title="起始玩家">★</span>` : ""}
-      <span>${escapeHtml(p.name)}</span>
-      ${idx === state.currentPlayerIndex ? `<span class="pip">当前</span>` : ""}
-      <span class="pip">奖杯 ${totalTrophiesOfPlayer(p)}</span>
-      <span class="pip">精灵球标记 ${totalTokensOfPlayer(p)}/10</span>
-    `;
+    if (p.isStarter){
+      const starter = document.createElement("span");
+      starter.className = "starter";
+      starter.title = "起始玩家";
+      starter.textContent = "★";
+      name.appendChild(starter);
+    }
+
+    const nameText = document.createElement("span");
+    nameText.textContent = p.name;
+    name.appendChild(nameText);
+
+    if (idx === state.currentPlayerIndex){
+      const currentPip = document.createElement("span");
+      currentPip.className = "pip";
+      currentPip.textContent = "当前";
+      name.appendChild(currentPip);
+    }
+
+    const trophyPip = document.createElement("span");
+    trophyPip.className = "pip";
+    trophyPip.textContent = `奖杯 ${totalTrophiesOfPlayer(p)}`;
+    name.appendChild(trophyPip);
+
+    const tokenPip = document.createElement("span");
+    tokenPip.className = "pip token-pip";
+    tokenPip.textContent = `精灵球标记 ${totalTokensOfPlayer(p)}/10`;
+    name.appendChild(tokenPip);
+
+    if (isAiPlayerIndex(idx)){
+      name.appendChild(renderAiDifficultySelector(p, idx));
+    }
     head.appendChild(name);
 
     wrap.appendChild(head);
@@ -1449,6 +1567,38 @@ function renderPlayers(){
     wrap.appendChild(zones);
     el.players.appendChild(wrap);
   });
+}
+
+function renderAiDifficultySelector(player, idx){
+  const wrap = document.createElement("label");
+  wrap.className = "pip ai-difficulty-select";
+  wrap.title = "AI 难度";
+
+  const text = document.createElement("span");
+  text.textContent = "AI 难度";
+  wrap.appendChild(text);
+
+  const select = document.createElement("select");
+  select.dataset.playerIndex = String(idx);
+
+  for (let level = 0; level <= 4; level++){
+    const opt = document.createElement("option");
+    opt.value = String(level);
+    opt.textContent = `Lv${level}`;
+    if (normalizeDifficulty(player.difficulty ?? 2) === level){
+      opt.selected = true;
+    }
+    select.appendChild(opt);
+  }
+
+  select.addEventListener("change", (ev) => {
+    const next = normalizeDifficulty(ev.target.value);
+    state.players[idx].difficulty = next;
+    renderPlayers();
+  });
+
+  wrap.appendChild(select);
+  return wrap;
 }
 
 function renderHandZone(cards, playerIndex){
