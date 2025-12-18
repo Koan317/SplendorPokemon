@@ -336,25 +336,24 @@ function totalTokensOfPlayer(p){
 
 function rewardBonusesOfPlayer(p){
   const bonus = [0,0,0,0,0,0];
-  function collect(card){
+  p.hand.forEach(card => {
     if (!card) return;
     const r = card.reward;
     if (r && r.ball_color >= 0 && r.ball_color < bonus.length){
       bonus[r.ball_color] += Number(r.number) || 0;
     }
-    const stacked = getStackedCards(card);
-    stacked.forEach(collect);
-  }
-  p.hand.forEach(collect);
+  });
   return bonus;
 }
 
-function flattenHandCards(p){
+function flattenHandCards(p, includeStacked = false){
   const collected = [];
   function collect(card){
     if (!card) return;
     collected.push(card);
-    getStackedCards(card).forEach(collect);
+    if (includeStacked){
+      getStackedCards(card).forEach(collect);
+    }
   }
   p.hand.forEach(collect);
   return collected;
