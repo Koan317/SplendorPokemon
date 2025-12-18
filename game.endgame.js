@@ -61,8 +61,8 @@ function showVictoryModal(winner){
   if (el.victoryDetails){
     el.victoryDetails.innerHTML = `
       <div>分数：${winner.score}</div>
-      <div>倒扣手牌：${winner.penalty}</div>
-      <div>奖杯卡牌数：${winner.trophyCards}</div>
+      <div>倒扣手牌数：${winner.penalty}</div>
+      <div>得分卡牌数：${winner.trophyCards}</div>
     `;
   }
 
