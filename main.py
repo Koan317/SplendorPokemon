@@ -2,17 +2,21 @@ from __future__ import annotations
 
 import random
 from dataclasses import dataclass, replace
-from typing import List, Optional
+from typing import List, Optional, Callable
 
+
+# ============================================================
+# Game State
+# ============================================================
 
 @dataclass(frozen=True)
 class GameState:
-    """Minimal, console-friendly game state."""
+    """Pure game state, no UI, no side effects."""
 
     grid_size: int
     player_pos: int
     opponent_pos: int
-    current_player: str
+    current_player: str  # "player" | "opponent"
     winner: Optional[str] = None
 
     @property
@@ -23,6 +27,7 @@ class GameState:
 def create_initial_state(grid_size: int = 7) -> GameState:
     if grid_size < 3:
         raise ValueError("grid_size must be at least 3")
+
     return GameState(
         grid_size=grid_size,
         player_pos=0,
@@ -31,16 +36,50 @@ def create_initial_state(grid_size: int = 7) -> GameState:
     )
 
 
-def get_legal_actions(state: GameState) -> List[str]:
-    """Return actions available to the actor whose turn it is."""
+# ============================================================
+# Rules
+# ============================================================
 
-    position = state.player_pos if state.current_player == "player" else state.opponent_pos
-    actions: List[str] = ["stay"]
-    if position > 0:
+def get_legal_actions(state: GameState) -> List[str]:
+    """Return all legal actions for current player."""
+
+    pos = state.player_pos if state.current_player == "player" else state.opponent_pos
+    actions = ["stay"]
+
+    if pos > 0:
         actions.append("left")
-    if position < state.grid_size - 1:
+    if pos < state.grid_size - 1:
         actions.append("right")
+
     return actions
+
+
+def apply_action(state: GameState, action: str) -> GameState:
+    """Apply action and return new GameState."""
+
+    if state.is_terminal:
+        return state
+
+    if action not in get_legal_actions(state):
+        raise ValueError(f"Illegal action: {action}")
+
+    actor = state.current_player
+    pos = state.player_pos if actor == "player" else state.opponent_pos
+
+    new_pos = _move(pos, action)
+    winner = _check_winner(state, actor, new_pos)
+
+    if actor == "player":
+        next_state = replace(state, player_pos=new_pos)
+        next_player = "opponent"
+    else:
+        next_state = replace(state, opponent_pos=new_pos)
+        next_player = "player"
+
+    if winner:
+        return replace(next_state, winner=winner)
+
+    return replace(next_state, current_player=next_player)
 
 
 def _move(position: int, action: str) -> int:
@@ -52,75 +91,27 @@ def _move(position: int, action: str) -> int:
 
 
 def _check_winner(state: GameState, actor: str, new_pos: int) -> Optional[str]:
+    # Reach goal
     if actor == "player" and new_pos == state.grid_size - 1:
         return actor
     if actor == "opponent" and new_pos == 0:
         return actor
 
+    # Collision
     other_pos = state.opponent_pos if actor == "player" else state.player_pos
     if new_pos == other_pos:
         return actor
+
     return None
 
 
-def apply_action(state: GameState, action: str) -> GameState:
-    if state.is_terminal:
-        return state
+# ============================================================
+# Evaluation
+# ============================================================
 
-    if action not in get_legal_actions(state):
-        raise ValueError(f"Illegal action {action!r} for {state.current_player}")
+def evaluate_state(state: GameState, perspective: str) -> float:
+    """Evaluate how good the state is for `perspective`."""
 
-    actor = state.current_player
-    new_pos = _move(state.player_pos if actor == "player" else state.opponent_pos, action)
-    winner = _check_winner(state, actor, new_pos)
-
-    if actor == "player":
-        updated_state = replace(state, player_pos=new_pos)
-        next_player = "opponent"
-    else:
-        updated_state = replace(state, opponent_pos=new_pos)
-        next_player = "player"
-
-    if winner:
-        return replace(updated_state, winner=winner)
-
-    return replace(updated_state, current_player=next_player)
-
-
-def random_if_else_ai(state: GameState) -> str:
-    """A terrible policy that mostly stumbles toward the goal."""
-
-    actions = get_legal_actions(state)
-    position = state.player_pos if state.current_player == "player" else state.opponent_pos
-    target = state.grid_size - 1 if state.current_player == "player" else 0
-
-    if random.random() < 0.2:
-        return random.choice(actions)
-
-    if position < target and "right" in actions:
-        return "right"
-    if position > target and "left" in actions:
-        return "left"
-
-    return random.choice(actions)
-
-
-def run_episode(grid_size: int = 7, seed: Optional[int] = None) -> GameState:
-    if seed is not None:
-        random.seed(seed)
-
-    state = create_initial_state(grid_size)
-    while not state.is_terminal:
-        action = random_if_else_ai(state)
-        state = apply_action(state, action)
-    return state
-
-
-def main():
-    print(run_match(greedy_depth2, random_if_else_ai))
-
-
-def evaluate(state: GameState, perspective: str) -> float:
     if state.winner == perspective:
         return 1.0
     if state.winner and state.winner != perspective:
@@ -131,34 +122,76 @@ def evaluate(state: GameState, perspective: str) -> float:
     else:
         return (state.grid_size - 1 - state.opponent_pos) / (state.grid_size - 1)
 
-def greedy_depth2(state):
+
+# ============================================================
+# AI Policies
+# ============================================================
+
+def random_policy(state: GameState) -> str:
+    """Baseline random policy."""
+    return random.choice(get_legal_actions(state))
+
+
+def greedy_depth2_policy(state: GameState) -> str:
+    """Depth-2 minimax-style greedy policy."""
+
     me = state.current_player
     best_score = -1e9
     best_action = None
 
-    for a in get_legal_actions(state):
-        s1 = apply_action(state, a)
+    for action in get_legal_actions(state):
+        s1 = apply_action(state, action)
 
         if s1.is_terminal:
-            score = evaluate(s1, me)
+            score = evaluate_state(s1, me)
         else:
-            # 假设对手会选“最坏的”
+            # Assume opponent chooses the worst reply
             score = min(
-                evaluate(apply_action(s1, r), me)
-                for r in get_legal_actions(s1)
+                evaluate_state(apply_action(s1, reply), me)
+                for reply in get_legal_actions(s1)
             )
 
         if score > best_score:
             best_score = score
-            best_action = a
+            best_action = action
 
     return best_action
 
-def run_match(ai_player, ai_opponent, n=50):
-    wins = {"player": 0, "opponent": 0}
 
-    for i in range(n):
-        random.seed(i)
+def ai_with_difficulty(state: GameState, level: int) -> str:
+    """
+    Difficulty-controlled AI.
+
+    level: 0 (easiest) ~ 4 (hardest)
+    """
+
+    if not 0 <= level <= 4:
+        raise ValueError("Difficulty level must be between 0 and 4")
+
+    blunder_rate_by_level = [0.6, 0.4, 0.2, 0.05, 0.0]
+    blunder_rate = blunder_rate_by_level[level]
+
+    if random.random() < blunder_rate:
+        return random_policy(state)
+
+    return greedy_depth2_policy(state)
+
+
+# ============================================================
+# Match Runner (for testing / benchmarking)
+# ============================================================
+
+def run_match(
+    ai_player: Callable[[GameState], str],
+    ai_opponent: Callable[[GameState], str],
+    games: int = 50,
+) -> dict:
+    """Run AI vs AI matches and return win statistics."""
+
+    results = {"player": 0, "opponent": 0}
+
+    for seed in range(games):
+        random.seed(seed)
         state = create_initial_state()
 
         while not state.is_terminal:
@@ -166,11 +199,27 @@ def run_match(ai_player, ai_opponent, n=50):
                 action = ai_player(state)
             else:
                 action = ai_opponent(state)
+
             state = apply_action(state, action)
 
-        wins[state.winner] += 1
+        results[state.winner] += 1
 
-    return wins
+    return results
+
+
+# ============================================================
+# Entry Point
+# ============================================================
+
+def main() -> None:
+    print("Testing difficulty levels:")
+    for level in range(5):
+        result = run_match(
+            lambda s, lv=level: ai_with_difficulty(s, lv),
+            random_policy,
+        )
+        print(f"AI level {level}: {result}")
+
 
 if __name__ == "__main__":
     main()
