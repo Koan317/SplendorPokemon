@@ -1230,7 +1230,7 @@ function getActionAvailability(){
   const hasSame = BALL_KEYS.some((_, idx) => idx !== Ball.master_ball && canTakeTwoSame(idx));
   const reserveAvailable = canReserveAnyCard(player);
   const buyAvailable = canBuyAnyCard(player);
-  const evolveAvailable = canEvolveAnyCard(player);
+  const evolveAvailable = !state.perTurn?.evolved && canEvolveAnyCard(player);
 
   return {
     take3: hasDifferent,
