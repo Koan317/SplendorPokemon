@@ -50,8 +50,6 @@ const el = {
   btnLoad: $("#btnLoad"),
   btnResetStorage: $("#btnResetStorage"),
 
-  btnReplaceOne: $("#btnReplaceOne"),
-
   modalOverlay: $("#modalOverlay"),
   confirmNewGameModal: $("#confirmNewGameModal"),
   victoryModal: $("#victoryModal"),
@@ -244,14 +242,9 @@ async function newGame(playerCount){
 
 // token 数量按人数
 function makeTokenPoolByPlayerCount(n){
-  let pool = [7,7,7,7,7,5];
-  if (n === 3){
-    pool = [6,6,6,6,6,5];
-  }
-  if (n === 2){
-    pool = [4,4,4,4,4,5];
-  }
-  return pool;
+  if (n === 2) return [4,4,4,4,4,5];
+  if (n === 3) return [6,6,6,6,6,5];
+  return [7,7,7,7,7,5];
 }
 
 function levelKey(level){
@@ -896,20 +889,6 @@ function actionEvolve(){
     renderAll();
     toast(`${baseCard.name} 已进化为 ${marketCard.name}`);
   });
-}
-
-function actionReplaceOne(){
-  // 规则：弃掉展示区 1 张并补 1 张（作为回合完整行动）
-  if (!ui.selectedMarketCardId) return toast("先点击展示区选择要替换的卡", { type: "error" });
-  const found = findMarketCard(ui.selectedMarketCardId);
-  if (!found) return toast("选择的卡不在展示区", { type: "error" });
-
-  const { level, idx } = found;
-  state.market.slotsByLevel[level][idx] = drawFromDeck(level);
-
-  clearSelections();
-  renderAll();
-  toast("已替换展示区 1 张卡");
 }
 
 function endTurn(){
@@ -1807,8 +1786,6 @@ window.addEventListener("resize", () => {
   if (!el.handModal || el.handModal.classList.contains("hidden")) return;
   requestAnimationFrame(applyHandStackingLayout);
 });
-
-if (el.btnReplaceOne) el.btnReplaceOne.addEventListener("click", actionReplaceOne);
 
 if (el.actTake3) el.actTake3.addEventListener("click", actionTake3Different);
 if (el.actTake2) el.actTake2.addEventListener("click", actionTake2Same);
