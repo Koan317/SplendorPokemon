@@ -994,18 +994,34 @@ function serializeStateForAi(gameState){
 
 async function requestAiAction(gameState){
   const body = serializeStateForAi(gameState);
-  const res = await fetch("/py/decide_action", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body,
-  });
+  let res;
+  try {
+    res = await fetch("/py/decide_action", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body,
+    });
+  } catch(err){
+    console.error("AI 请求网络失败，使用兜底行动", err);
+    return { type: "endTurn" };
+  }
+
+  if (res.status === 501){
+    console.warn("后端未实现 POST /py/decide_action，使用兜底行动");
+    return { type: "endTurn" };
+  }
 
   if (!res.ok){
     throw new Error(`AI 请求失败（${res.status}）`);
   }
 
-  const data = await res.json();
-  return data?.action;
+  try {
+    const data = await res.json();
+    return data?.action ?? { type: "endTurn" };
+  } catch(err){
+    console.error("AI 响应解析失败，使用兜底行动", err);
+    return { type: "endTurn" };
+  }
 }
 
 function applyAction(action){
@@ -1586,7 +1602,7 @@ function renderAiDifficultySelector(player, idx){
   for (let level = 0; level <= 4; level++){
     const opt = document.createElement("option");
     opt.value = String(level);
-    opt.textContent = `${DIFFICULTY_LABELS[level]} (Lv${level})`;
+    opt.textContent = DIFFICULTY_LABELS[level];
     if (normalizeDifficulty(player.difficulty ?? 2) === level){
       opt.selected = true;
     }
