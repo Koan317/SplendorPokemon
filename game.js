@@ -669,15 +669,18 @@ function animateCardMove(startEl, targetEl, duration = 800){
 
   const dx = targetCenter.x - startCenter.x;
   const dy = targetCenter.y - startCenter.y;
+  const miniCardHeight = parseFloat(rootStyles.getPropertyValue("--mini-card-h"));
   const targetWidth = Number.isFinite(miniCardWidth) && miniCardWidth > 0 ? miniCardWidth : targetRect.width;
-  const scale = targetWidth / startRect.width;
+  const targetHeight = Number.isFinite(miniCardHeight) && miniCardHeight > 0 ? miniCardHeight : targetRect.height;
+  const scaleX = targetWidth / startRect.width;
+  const scaleY = targetHeight / startRect.height;
 
   // 强制一次回流，确保过渡生效
   clone.getBoundingClientRect();
 
   requestAnimationFrame(() => {
     startEl.style.visibility = "hidden";
-    clone.style.transform = `translate(${dx}px, ${dy}px) scale(${scale})`;
+    clone.style.transform = `scale(${scaleX}, ${scaleY}) translate(${dx}px, ${dy}px)`;
     clone.style.opacity = "0.92";
   });
 
