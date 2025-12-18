@@ -668,13 +668,14 @@ function animateCardMove(startEl, targetEl, duration = 800){
 
   const dx = targetCenter.x - startCenter.x;
   const dy = targetCenter.y - startCenter.y;
-  const scale = targetRect.width / startRect.width;
+  const scaleX = targetRect.width / startRect.width;
+  const scaleY = targetRect.height / startRect.height;
 
   // 强制一次回流，确保过渡生效
   clone.getBoundingClientRect();
 
   requestAnimationFrame(() => {
-    clone.style.transform = `translate(${dx}px, ${dy}px) scale(${scale})`;
+    clone.style.transform = `translate(${dx}px, ${dy}px) scale(${scaleX}, ${scaleY})`;
     clone.style.opacity = "0.92";
   });
 
