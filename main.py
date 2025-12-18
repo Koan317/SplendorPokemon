@@ -116,13 +116,61 @@ def run_episode(grid_size: int = 7, seed: Optional[int] = None) -> GameState:
     return state
 
 
-def main() -> None:
-    final_state = run_episode()
-    print("Final state:")
-    print(final_state)
-    if final_state.winner:
-        print(f"Winner: {final_state.winner}")
+def main():
+    print(run_match(greedy_depth2, random_if_else_ai))
 
+
+def evaluate(state: GameState, perspective: str) -> float:
+    if state.winner == perspective:
+        return 1.0
+    if state.winner and state.winner != perspective:
+        return -1.0
+
+    if perspective == "player":
+        return state.player_pos / (state.grid_size - 1)
+    else:
+        return (state.grid_size - 1 - state.opponent_pos) / (state.grid_size - 1)
+
+def greedy_depth2(state):
+    me = state.current_player
+    best_score = -1e9
+    best_action = None
+
+    for a in get_legal_actions(state):
+        s1 = apply_action(state, a)
+
+        if s1.is_terminal:
+            score = evaluate(s1, me)
+        else:
+            # 假设对手会选“最坏的”
+            score = min(
+                evaluate(apply_action(s1, r), me)
+                for r in get_legal_actions(s1)
+            )
+
+        if score > best_score:
+            best_score = score
+            best_action = a
+
+    return best_action
+
+def run_match(ai_player, ai_opponent, n=50):
+    wins = {"player": 0, "opponent": 0}
+
+    for i in range(n):
+        random.seed(i)
+        state = create_initial_state()
+
+        while not state.is_terminal:
+            if state.current_player == "player":
+                action = ai_player(state)
+            else:
+                action = ai_opponent(state)
+            state = apply_action(state, action)
+
+        wins[state.winner] += 1
+
+    return wins
 
 if __name__ == "__main__":
     main()
