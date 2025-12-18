@@ -142,6 +142,8 @@ function ensurePerTurnDefaults(){
   if (state.perTurn.primaryAction === undefined) state.perTurn.primaryAction = null;
 }
 
+const DIFFICULTY_LABELS = ["入门", "简单", "标准", "进阶", "大师"];
+
 function normalizeDifficulty(value){
   const num = Number(value);
   if (Number.isInteger(num) && num >= 0 && num <= 4){
@@ -1584,7 +1586,7 @@ function renderAiDifficultySelector(player, idx){
   for (let level = 0; level <= 4; level++){
     const opt = document.createElement("option");
     opt.value = String(level);
-    opt.textContent = `Lv${level}`;
+    opt.textContent = `${DIFFICULTY_LABELS[level]} (Lv${level})`;
     if (normalizeDifficulty(player.difficulty ?? 2) === level){
       opt.selected = true;
     }

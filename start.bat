@@ -1,10 +1,10 @@
 @echo off
 setlocal EnableDelayedExpansion
 
-REM Start Python HTTP server in background and capture PID
-start "" /b python -m http.server 8000
+REM Start custom Python server in background and capture PID
+start "" /b python server.py
 
-REM Find the PID of the python http.server bound to port 8000
+REM Find the PID of the python server bound to port 8000
 for /f "tokens=5" %%p in ('netstat -ano ^| findstr :8000 ^| findstr LISTENING') do (
     set SERVER_PID=%%p
 )
