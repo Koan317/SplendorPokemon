@@ -368,7 +368,7 @@ function totalScoreOfPlayer(p){
 }
 
 function penaltyHandCount(p){
-  return flattenHandCards(p).filter(c => (Number(c.point) || 0) < 0).length;
+  return flattenHandCards(p, true).filter(c => (Number(c.point) || 0) < 0).length;
 }
 
 function trophyCardCount(p){
