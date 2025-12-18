@@ -2027,7 +2027,22 @@ if (el.btnNew) el.btnNew.addEventListener("click", () => {
   showModal(el.confirmNewGameModal);
 });
 
+const ensureModalOverlay = () => {
+  if (el.modalOverlay) return el.modalOverlay;
+  const overlay = document.createElement("div");
+  overlay.id = "modalOverlay";
+  overlay.className = "modal-overlay hidden";
+  document.body.appendChild(overlay);
+  el.modalOverlay = overlay;
+  overlay.addEventListener("click", () => {
+    if (ui.tokenReturn) return;
+    closeModals();
+  });
+  return overlay;
+};
+
 if (el.btnAiInfo) el.btnAiInfo.addEventListener("click", () => {
+  ensureModalOverlay();
   showModal(el.aiInfoModal);
 });
 
