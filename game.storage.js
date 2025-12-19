@@ -57,6 +57,7 @@ function applySavePayload(payload){
   state.endTriggered = !!payload.endTriggered;
   state.endTriggerTurn = payload.endTriggerTurn ?? null;
   state.victoryResolved = !!payload.victoryResolved;
+  state.createdAt = typeof payload.createdAt === "string" ? payload.createdAt : state.createdAt;
   state.gameStartAt = typeof payload.gameStartAt === "number" ? payload.gameStartAt : (payload.gameStartAt ? Number(payload.gameStartAt) : null);
   state.gameEndAt = typeof payload.gameEndAt === "number" ? payload.gameEndAt : (payload.gameEndAt ? Number(payload.gameEndAt) : null);
   state.perTurn = payload.perTurn ?? { evolved:false, primaryAction: null };
