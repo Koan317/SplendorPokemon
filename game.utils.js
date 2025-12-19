@@ -56,11 +56,13 @@ function computeElapsedMs(){
 
 function renderGameTimer(){
   if (!el.gameTimer) return;
+  if (!state.gameStartAt) maybeEnsureGameStartTime();
   if (!state.gameStartAt){
     stopGameTimer();
     el.gameTimer.textContent = "--:--";
     return;
   }
+  ensureTimerInterval();
   el.gameTimer.textContent = formatDuration(computeElapsedMs());
 }
 
