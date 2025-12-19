@@ -23,6 +23,7 @@ async function newGame(playerCount){
   state.currentPlayerIndex = 0;
   state.turn = 1;
   state.perTurn = { evolved: false, primaryAction: null };
+  startGameTimer();
 
   state.decks = buildDecksFromLibrary(lib);
   refillMarketFromDecks();
@@ -85,4 +86,3 @@ function findMarketCard(cardId){
   }
   return null;
 }
-

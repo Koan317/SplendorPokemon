@@ -40,6 +40,8 @@ function makeEmptyState(){
 
     turn: 1,
     currentPlayerIndex: 0,
+    gameStartAt: null,
+    gameEndAt: null,
     // 规则约束（每回合一次进化）
     perTurn: {
       evolved: false,
@@ -91,4 +93,3 @@ function markPrimaryAction(actionKey){
   ensurePerTurnDefaults();
   state.perTurn.primaryAction = actionKey;
 }
-

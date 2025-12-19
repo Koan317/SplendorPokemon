@@ -26,6 +26,8 @@ function makeSavePayload(){
     endTriggered: state.endTriggered,
     endTriggerTurn: state.endTriggerTurn,
     victoryResolved: state.victoryResolved,
+    gameStartAt: state.gameStartAt,
+    gameEndAt: state.gameEndAt,
     perTurn: state.perTurn,
 
     tokenPool: state.tokenPool,
@@ -55,6 +57,8 @@ function applySavePayload(payload){
   state.endTriggered = !!payload.endTriggered;
   state.endTriggerTurn = payload.endTriggerTurn ?? null;
   state.victoryResolved = !!payload.victoryResolved;
+  state.gameStartAt = typeof payload.gameStartAt === "number" ? payload.gameStartAt : (payload.gameStartAt ? Number(payload.gameStartAt) : null);
+  state.gameEndAt = typeof payload.gameEndAt === "number" ? payload.gameEndAt : (payload.gameEndAt ? Number(payload.gameEndAt) : null);
   state.perTurn = payload.perTurn ?? { evolved:false, primaryAction: null };
   ensurePerTurnDefaults();
 
@@ -99,5 +103,5 @@ function applySavePayload(payload){
 
   clearSelections();
   renderAll();
+  resumeGameTimer();
 }
-

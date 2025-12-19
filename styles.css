@@ -56,6 +56,17 @@ body {
 .sub { color: var(--muted); font-size: 12px; }
 
 .controls { display: flex; gap: 8px; flex-wrap: wrap; }
+.game-timer {
+    min-width: 84px;
+    padding: 8px 12px;
+    border-radius: 10px;
+    border: 1px solid var(--line);
+    background: rgba(17, 24, 39, 0.4);
+    color: var(--muted);
+    font-variant-numeric: tabular-nums;
+    display: grid;
+    place-items: center;
+}
 
 .btn {
     padding: 8px 12px;

@@ -4,6 +4,7 @@ function renderAll(){
   renderTokenPool();
   renderMarket();
   renderPlayers();
+  renderGameTimer();
   renderErrorBanner();
   renderActionButtons();
   if (el.handModal && !el.handModal.classList.contains("hidden")){

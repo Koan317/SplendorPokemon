@@ -45,6 +45,11 @@ function resolveVictory(){
 
   const winner = ranking[0];
   state.victoryResolved = true;
+  if (!state.gameEndAt){
+    state.gameEndAt = Date.now();
+  }
+  stopGameTimer();
+  renderGameTimer();
   showVictoryModal(winner);
 }
 
@@ -59,10 +64,12 @@ function showVictoryModal(winner){
   }
 
   if (el.victoryDetails){
+    const duration = formatDuration(computeElapsedMs());
     el.victoryDetails.innerHTML = `
       <div>奖杯数：${winner.trophies}</div>
       <div>倒扣手牌数：${winner.penalty}</div>
       <div>正面朝上卡牌数：${winner.trophyCards}</div>
+      <div>对局时长：${duration}</div>
     `;
   }
 
