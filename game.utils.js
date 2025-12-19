@@ -57,7 +57,7 @@ function computeElapsedMs(){
 function renderGameTimer(){
   if (!el.gameTimer) return;
   if (!state.gameStartAt){
-    maybeEnsureGameStartTime();
+    stopGameTimer();
     el.gameTimer.textContent = "--:--";
     return;
   }
@@ -76,20 +76,13 @@ function startGameTimer(){
   state.gameStartAt = Date.now();
   state.gameEndAt = null;
   renderGameTimer();
-  timerIntervalId = setInterval(renderGameTimer, 1000);
+  ensureTimerInterval();
 }
 
 function resumeGameTimer(){
-  if (!state.gameStartAt){
-    maybeEnsureGameStartTime();
-  }
-  if (!state.gameStartAt || state.victoryResolved){
-    renderGameTimer();
-    return;
-  }
-  stopGameTimer();
+  if (!state.gameStartAt) maybeEnsureGameStartTime();
   renderGameTimer();
-  timerIntervalId = setInterval(renderGameTimer, 1000);
+  ensureTimerInterval();
 }
 
 function maybeEnsureGameStartTime(){
@@ -98,4 +91,14 @@ function maybeEnsureGameStartTime(){
   const fallback = Number.isFinite(createdMs) ? createdMs : Date.now();
   state.gameStartAt = fallback;
   state.gameEndAt = null;
+}
+
+function ensureTimerInterval(){
+  if (state.victoryResolved || state.gameEndAt){
+    stopGameTimer();
+    return;
+  }
+  if (state.gameStartAt && !timerIntervalId){
+    timerIntervalId = setInterval(renderGameTimer, 1000);
+  }
 }
