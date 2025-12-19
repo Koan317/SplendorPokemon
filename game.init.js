@@ -30,6 +30,7 @@ async function newGame(playerCount){
   refillMarketFromDecks();
 
   clearSelections();
+  resetSessionTimer();
   renderAll();
 }
 

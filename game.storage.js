@@ -101,5 +101,6 @@ function applySavePayload(payload){
   }
 
   clearSelections();
+  resetSessionTimer();
   renderAll();
 }

@@ -58,6 +58,14 @@ function ensureSessionTimerTicking(){
   ui.sessionTimerInterval = setInterval(updateSessionTimerDisplay, 1000);
 }
 
+function resetSessionTimer(){
+  if (ui.sessionTimerInterval){
+    clearInterval(ui.sessionTimerInterval);
+    ui.sessionTimerInterval = null;
+  }
+  ensureSessionTimerTicking();
+}
+
 function marketCardsByLevels(levels = [1,2,3,4,5]){
   const cards = [];
   const slots = state.market?.slotsByLevel || {};

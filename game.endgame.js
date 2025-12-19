@@ -48,6 +48,7 @@ function resolveVictory(){
   if (!state.sessionEndedAt){
     state.sessionEndedAt = new Date().toISOString();
   }
+  updateSessionTimerDisplay();
   showVictoryModal(winner);
 }
 
