@@ -149,13 +149,18 @@ function aiSelectBuyTarget(player, ctx){
 
 function aiSelectEvolveTarget(player, ctx){
   const options = [];
-  for (const { card } of marketCardsByLevels()){
+  const candidates = [
+    ...marketCardsByLevels().map(({ card }) => ({ card, source: "market" })),
+    ...player.reserved.map(card => ({ card, source: "reserved" })),
+  ];
+
+  for (const { card, source } of candidates){
     if (!card) continue;
     const base = player.hand.find(c => c?.evolution?.name === card.name && canAffordEvolution(player, c));
     if (!base) continue;
     const cost = (card.cost || []).reduce((s, c) => s + (Number(c.number) || 0), 0);
     if (ctx.level >= 2 && cost > 0 && totalTokensOfPlayer(player) < 6) continue; // 避免用主行动硬进化
-    options.push({ card });
+    options.push({ card, source });
   }
   if (!options.length) return null;
   options.sort((a, b) => aiCardScore(b.card, player, ctx) - aiCardScore(a.card, player, ctx));
@@ -553,7 +558,12 @@ function executeAiDecision(decision){
     }
     case "evolve":{
       ui.selectedReservedCard = null;
-      ui.selectedMarketCardId = decision.target.card.id;
+      ui.selectedMarketCardId = null;
+      if (decision.target.source === "reserved"){
+        ui.selectedReservedCard = { playerIndex: state.currentPlayerIndex, cardId: decision.target.card.id };
+      } else {
+        ui.selectedMarketCardId = decision.target.card.id;
+      }
       return ensurePromise(actionEvolve());
     }
     case "reserve":{
