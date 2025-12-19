@@ -121,9 +121,22 @@ function startGameTimerTicker(){
   gameTimerInterval = setInterval(renderGameTimer, 1000);
 }
 
+function stopGameTimerTicker(){
+  if (gameTimerInterval){
+    clearInterval(gameTimerInterval);
+    gameTimerInterval = null;
+  }
+}
+
 function renderGameTimer(){
   if (!el.gameTimer) return;
   ensureGameTimer();
+  if (!state.gameTimer.startedAt && state.players?.length){
+    state.gameTimer.startedAt = Date.now();
+  }
+  if (state.victoryResolved){
+    stopGameTimerTicker();
+  }
   const elapsed = getGameElapsedMs();
   el.gameTimer.textContent = elapsed != null ? formatDuration(elapsed) : "--:--";
 }

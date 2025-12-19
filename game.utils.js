@@ -38,9 +38,10 @@ function formatDuration(ms){
   const hours = Math.floor(totalSeconds / 3600);
   const minutes = Math.floor((totalSeconds % 3600) / 60);
   const seconds = totalSeconds % 60;
-  const parts = [];
-  if (hours > 0) parts.push(`${hours}小时`);
-  parts.push(`${minutes.toString().padStart(2, "0")}分`);
-  parts.push(`${seconds.toString().padStart(2, "0")}秒`);
-  return parts.join("");
+  const hhmmss = [
+    hours.toString().padStart(2, "0"),
+    minutes.toString().padStart(2, "0"),
+    seconds.toString().padStart(2, "0"),
+  ].join(":");
+  return hours > 0 ? hhmmss : hhmmss.slice(3);
 }
