@@ -38,10 +38,9 @@ function formatDuration(ms){
   const hours = Math.floor(totalSeconds / 3600);
   const minutes = Math.floor((totalSeconds % 3600) / 60);
   const seconds = totalSeconds % 60;
-  const hhmmss = [
-    hours.toString().padStart(2, "0"),
-    minutes.toString().padStart(2, "0"),
-    seconds.toString().padStart(2, "0"),
-  ].join(":");
-  return hours > 0 ? hhmmss : hhmmss.slice(3);
+  const pad = (v) => v.toString().padStart(2, "0");
+  if (hours > 0){
+    return `${pad(hours)}:${pad(minutes)}:${pad(seconds)}`;
+  }
+  return `${pad(minutes)}:${pad(seconds)}`;
 }
