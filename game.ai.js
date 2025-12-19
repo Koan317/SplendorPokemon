@@ -303,10 +303,19 @@ function aiEvaluatePlan(decision, player, ctx, planType){
   const selfGainWeight = ctx.level >= 3 ? 8 : 6;
   const tempoScore = (selfTurns - projectedSelf) * tempoWeight + (selfGain * selfGainWeight);
   const masterPenalty = usesMasterBall ? (8 - Math.min(3, ctx.level || 0)) : 0;
-  const baseOpponentTurns = Number.isFinite(ctx.dangerousOpponentEstimatedTurnsToWin) ? ctx.dangerousOpponentEstimatedTurnsToWin : Infinity;
-  const delayOpponentBy = Math.max(0, (baseOpponentTurns - projectedOpponent));
+  const baseOpponentTurns = Number.isFinite(ctx.dangerousOpponentEstimatedTurnsToWin)
+    ? ctx.dangerousOpponentEstimatedTurnsToWin
+    : Infinity;
+  const delayOpponentBy = (Number.isFinite(baseOpponentTurns) && Number.isFinite(projectedOpponent))
+    ? Math.max(0, baseOpponentTurns - projectedOpponent)
+    : 0;
   const overflowPenalty = decision.planMeta?.overflow ? 18 : 0;
-  let planScore = (decision.score || 0) + impactScore + tempoScore - masterPenalty - overflowPenalty + Math.max(0, delayOpponentBy) * 10;
+  let planScore = (decision.score || 0)
+    + impactScore
+    + tempoScore
+    - masterPenalty
+    - overflowPenalty
+    + Math.max(0, delayOpponentBy) * 10;
   if (planType === "block") planScore += 15;
   if (planType === "reveal") planScore += 12;
   if (ctx.level >= 4 && ctx.mustBlock && planType === "block") planScore += 30;
