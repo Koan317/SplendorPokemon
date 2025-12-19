@@ -300,7 +300,8 @@ function aiEvaluatePlan(decision, player, ctx, planType){
   const masterPenalty = usesMasterBall ? (8 - Math.min(3, ctx.level || 0)) : 0;
   const baseOpponentTurns = Number.isFinite(ctx.dangerousOpponentEstimatedTurnsToWin) ? ctx.dangerousOpponentEstimatedTurnsToWin : Infinity;
   const delayOpponentBy = Math.max(0, (baseOpponentTurns - projectedOpponent));
-  let planScore = (decision.score || 0) + impactScore + tempoScore - masterPenalty + Math.max(0, delayOpponentBy) * 10;
+  const overflowPenalty = decision.planMeta?.overflow ? 18 : 0;
+  let planScore = (decision.score || 0) + impactScore + tempoScore - masterPenalty - overflowPenalty + Math.max(0, delayOpponentBy) * 10;
   if (planType === "block") planScore += 15;
   if (planType === "reveal") planScore += 12;
   if (ctx.level >= 4 && ctx.mustBlock && planType === "block") planScore += 30;
@@ -434,16 +435,18 @@ function chooseAiAction(player, level){
   if (availability.take3){
     const colors = aiPickTake3Colors(player, plannedCard, ctx);
     const projectedTokens = totalTokensOfPlayer(player) + colors.length;
-    if (colors.length && projectedTokens <= 10){
-      decisions.push({ type: "take3", colors, score: 10 + colors.length });
+    if (colors.length){
+      const overflow = projectedTokens > 10;
+      decisions.push({ type: "take3", colors, score: 10 + colors.length, planMeta: { overflow } });
     }
   }
 
   if (availability.take2){
     const color = aiPickTake2Color(player, plannedCard);
     const projectedTokens = totalTokensOfPlayer(player) + 2;
-    if (color !== null && color !== undefined && projectedTokens <= 10){
-      decisions.push({ type: "take2", colors: [color], score: 9 });
+    if (color !== null && color !== undefined){
+      const overflow = projectedTokens > 10;
+      decisions.push({ type: "take2", colors: [color], score: 9, planMeta: { overflow } });
     }
   }
 
@@ -461,6 +464,17 @@ function chooseAiAction(player, level){
     const planType = aiDetectPlanType(second, ctx);
     const plan = aiEvaluatePlan(second, player, ctx, planType);
     if (plan) plans.push(plan);
+  }
+
+  if (!plans.length && (availability.take3 || availability.take2)){
+    // 如果因容量过滤导致没有计划，允许一次溢出拿取避免卡住
+    decisions.forEach(decision => {
+      if (!decision.planMeta) decision.planMeta = {};
+      decision.planMeta.overflow = true;
+      const planType = aiDetectPlanType(decision, ctx);
+      const plan = aiEvaluatePlan(decision, player, ctx, planType);
+      if (plan) plans.push(plan);
+    });
   }
 
   if (blockOrLose){
