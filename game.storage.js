@@ -62,6 +62,7 @@ function applySavePayload(payload){
   state.gameEndAt = typeof payload.gameEndAt === "number" ? payload.gameEndAt : (payload.gameEndAt ? Number(payload.gameEndAt) : null);
   state.perTurn = payload.perTurn ?? { evolved:false, primaryAction: null };
   ensurePerTurnDefaults();
+  maybeEnsureGameStartTime();
 
   state.tokenPool = payload.tokenPool ?? [7,7,7,7,7,5];
 
