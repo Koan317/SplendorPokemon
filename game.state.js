@@ -48,6 +48,10 @@ function makeEmptyState(){
     endTriggered: false,
     endTriggerTurn: null,
     victoryResolved: false,
+    gameTimer: {
+      startedAt: null,
+      stoppedAt: null,
+    },
   };
 }
 
@@ -55,6 +59,13 @@ function ensurePerTurnDefaults(){
   if (!state.perTurn) state.perTurn = { evolved: false, primaryAction: null };
   if (state.perTurn.evolved === undefined) state.perTurn.evolved = false;
   if (state.perTurn.primaryAction === undefined) state.perTurn.primaryAction = null;
+}
+
+function ensureGameTimer(){
+  if (!state.gameTimer) state.gameTimer = { startedAt: null, stoppedAt: null };
+  const isValidNumber = (v) => typeof v === "number" && Number.isFinite(v);
+  if (!isValidNumber(state.gameTimer.startedAt)) state.gameTimer.startedAt = null;
+  if (!isValidNumber(state.gameTimer.stoppedAt)) state.gameTimer.stoppedAt = null;
 }
 
 function getPlayerAiLevel(player, index){
@@ -91,4 +102,3 @@ function markPrimaryAction(actionKey){
   ensurePerTurnDefaults();
   state.perTurn.primaryAction = actionKey;
 }
-

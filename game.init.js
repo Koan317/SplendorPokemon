@@ -4,6 +4,10 @@ async function newGame(playerCount){
   lastLoadError = null;
   state = makeEmptyState();
   ui.errorMessage = "";
+  ensureGameTimer();
+  state.gameTimer.startedAt = Date.now();
+  state.gameTimer.stoppedAt = null;
+  renderGameTimer();
 
   state.tokenPool = makeTokenPoolByPlayerCount(playerCount);
 
@@ -85,4 +89,3 @@ function findMarketCard(cardId){
   }
   return null;
 }
-

@@ -1,6 +1,9 @@
 // ========== 10) 渲染 ==========
 function renderAll(){
   ensurePerTurnDefaults();
+  ensureGameTimer();
+  startGameTimerTicker();
+  renderGameTimer();
   renderTokenPool();
   renderMarket();
   renderPlayers();
@@ -110,4 +113,17 @@ function renderActionButtons(){
     el.disabled = disabled;
     el.classList.toggle("completed", taken === key);
   });
+}
+
+let gameTimerInterval = null;
+function startGameTimerTicker(){
+  if (gameTimerInterval) return;
+  gameTimerInterval = setInterval(renderGameTimer, 1000);
+}
+
+function renderGameTimer(){
+  if (!el.gameTimer) return;
+  ensureGameTimer();
+  const elapsed = getGameElapsedMs();
+  el.gameTimer.textContent = elapsed != null ? formatDuration(elapsed) : "--:--";
 }

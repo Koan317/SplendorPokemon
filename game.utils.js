@@ -32,3 +32,15 @@ function escapeHtml(s){
     "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"
   }[c]));
 }
+
+function formatDuration(ms){
+  const totalSeconds = Math.max(0, Math.floor((typeof ms === "number" ? ms : 0) / 1000));
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const seconds = totalSeconds % 60;
+  const parts = [];
+  if (hours > 0) parts.push(`${hours}小时`);
+  parts.push(`${minutes.toString().padStart(2, "0")}分`);
+  parts.push(`${seconds.toString().padStart(2, "0")}秒`);
+  return parts.join("");
+}

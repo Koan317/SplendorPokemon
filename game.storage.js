@@ -27,6 +27,7 @@ function makeSavePayload(){
     endTriggerTurn: state.endTriggerTurn,
     victoryResolved: state.victoryResolved,
     perTurn: state.perTurn,
+    gameTimer: state.gameTimer,
 
     tokenPool: state.tokenPool,
     market: state.market,
@@ -57,6 +58,13 @@ function applySavePayload(payload){
   state.victoryResolved = !!payload.victoryResolved;
   state.perTurn = payload.perTurn ?? { evolved:false, primaryAction: null };
   ensurePerTurnDefaults();
+  ensureGameTimer();
+  const startMs = typeof payload.gameTimer?.startedAt === "number"
+    ? payload.gameTimer.startedAt
+    : (payload.gameTimer?.startedAt ? Date.parse(payload.gameTimer.startedAt) : Date.parse(payload.createdAt));
+  const stopMs = typeof payload.gameTimer?.stoppedAt === "number" ? payload.gameTimer.stoppedAt : (payload.gameTimer?.stoppedAt ? Date.parse(payload.gameTimer.stoppedAt) : null);
+  state.gameTimer.startedAt = Number.isFinite(startMs) ? startMs : null;
+  state.gameTimer.stoppedAt = Number.isFinite(stopMs) ? stopMs : null;
 
   state.tokenPool = payload.tokenPool ?? [7,7,7,7,7,5];
 
@@ -100,4 +108,3 @@ function applySavePayload(payload){
   clearSelections();
   renderAll();
 }
-

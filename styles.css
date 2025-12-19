@@ -56,6 +56,16 @@ body {
 .sub { color: var(--muted); font-size: 12px; }
 
 .controls { display: flex; gap: 8px; flex-wrap: wrap; }
+.game-timer {
+    padding: 8px 10px;
+    border-radius: 10px;
+    border: 1px solid var(--line);
+    background: rgba(17, 24, 39, 0.6);
+    color: var(--text);
+    font-variant-numeric: tabular-nums;
+    min-width: 92px;
+    text-align: center;
+}
 
 .btn {
     padding: 8px 12px;
@@ -573,6 +583,7 @@ body.modal-open .app, body.modal-open .topbar { filter: blur(6px); transition: f
 .modal-actions { display: flex; flex-wrap: wrap; gap: 8px; justify-content: flex-end; }
 .victory-winner { font-weight: 700; color: var(--text); margin-bottom: 8px; }
 .victory-details { display: grid; gap: 6px; margin-bottom: 10px; color: var(--muted); }
+.victory-timer { color: var(--muted); margin-bottom: 14px; }
 
 .ai-info-modal { width: min(1230px, 96vw); }
 .ai-info-table-wrapper { overflow: auto; margin: 14px 0; }

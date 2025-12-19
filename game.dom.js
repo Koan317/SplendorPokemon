@@ -23,8 +23,10 @@ const el = {
   btnConfirmPlayerCount: $("#btnConfirmPlayerCount"),
   btnCancelPlayerCount: $("#btnCancelPlayerCount"),
   btnVictoryConfirm: $("#btnVictoryConfirm"),
+  gameTimer: $("#gameTimer"),
   victoryWinnerName: $("#victoryWinnerName"),
   victoryDetails: $("#victoryDetails"),
+  victoryTimer: $("#victoryTimer"),
 
   aiInfoModal: $("#aiInfoModal"),
   btnCloseAiInfo: $("#btnCloseAiInfo"),
@@ -48,4 +50,3 @@ const el = {
   actEvolve: $("#actEvolve"),
   actEndTurn: $("#actEndTurn"),
 };
-

@@ -29,6 +29,20 @@ function shouldResolveVictory(isLastPlayerOfRound){
   return false;
 }
 
+function stopGameTimer(){
+  ensureGameTimer();
+  if (!state.gameTimer.startedAt) state.gameTimer.startedAt = Date.now();
+  if (!state.gameTimer.stoppedAt) state.gameTimer.stoppedAt = Date.now();
+  return state.gameTimer.stoppedAt;
+}
+
+function getGameElapsedMs(){
+  ensureGameTimer();
+  if (!state.gameTimer.startedAt) return null;
+  const endTs = state.gameTimer.stoppedAt ?? Date.now();
+  return Math.max(0, endTs - state.gameTimer.startedAt);
+}
+
 function resolveVictory(){
   const ranking = state.players.map((p, idx) => ({
     player: p,
@@ -44,6 +58,7 @@ function resolveVictory(){
   });
 
   const winner = ranking[0];
+  stopGameTimer();
   state.victoryResolved = true;
   showVictoryModal(winner);
 }
@@ -64,6 +79,11 @@ function showVictoryModal(winner){
       <div>倒扣手牌数：${winner.penalty}</div>
       <div>正面朝上卡牌数：${winner.trophyCards}</div>
     `;
+  }
+
+  if (el.victoryTimer){
+    const elapsed = getGameElapsedMs();
+    el.victoryTimer.textContent = elapsed != null ? `用时：${formatDuration(elapsed)}` : "用时：--";
   }
 
   if (el.victoryModal){
