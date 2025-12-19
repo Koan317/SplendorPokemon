@@ -21,6 +21,7 @@ function makeSavePayload(){
   return {
     version: state.version,
     createdAt: state.createdAt,
+    sessionEndedAt: state.sessionEndedAt,
     turn: state.turn,
     currentPlayerIndex: state.currentPlayerIndex,
     endTriggered: state.endTriggered,
@@ -55,6 +56,8 @@ function applySavePayload(payload){
   state.endTriggered = !!payload.endTriggered;
   state.endTriggerTurn = payload.endTriggerTurn ?? null;
   state.victoryResolved = !!payload.victoryResolved;
+  state.createdAt = payload.createdAt || state.createdAt;
+  state.sessionEndedAt = payload.sessionEndedAt || null;
   state.perTurn = payload.perTurn ?? { evolved:false, primaryAction: null };
   ensurePerTurnDefaults();
 
@@ -100,4 +103,3 @@ function applySavePayload(payload){
   clearSelections();
   renderAll();
 }
-

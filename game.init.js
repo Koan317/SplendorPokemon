@@ -4,6 +4,8 @@ async function newGame(playerCount){
   lastLoadError = null;
   state = makeEmptyState();
   ui.errorMessage = "";
+  state.createdAt = new Date().toISOString();
+  state.sessionEndedAt = null;
 
   state.tokenPool = makeTokenPoolByPlayerCount(playerCount);
 
@@ -85,4 +87,3 @@ function findMarketCard(cardId){
   }
   return null;
 }
-
