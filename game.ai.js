@@ -267,14 +267,15 @@ function aiEvaluatePlan(decision, player, ctx, planType){
   if (!decision) return null;
   const usesMasterBall = decision.target?.card && aiWouldSpendMasterBall(player, decision.target.card);
   const selfGain = Number(decision.target?.card?.point) || 0;
-  const projectedSelf = Math.max(0, ctx.selfEstimatedTurns - (selfGain > 0 ? 1 : 0));
+  const selfTurns = Number.isFinite(ctx.selfEstimatedTurns) ? ctx.selfEstimatedTurns : 8;
+  const projectedSelf = Math.max(0, selfTurns - (selfGain > 0 ? 1 : 0));
   const opponentImpact = aiPlanOpponentImpact(decision, ctx);
   const projectedOpponent = ctx.dangerousOpponent ? ctx.dangerousOpponent.turns + opponentImpact : Infinity;
   const relativeSafety = ctx.dangerousOpponent ? (projectedOpponent - ctx.selfEstimatedTurns) : 0;
   const impactScore = opponentImpact * 28 + relativeSafety * 6;
   const tempoWeight = ctx.level >= 3 ? 8 : 12;
   const selfGainWeight = ctx.level >= 3 ? 8 : 6;
-  const tempoScore = -projectedSelf * tempoWeight + (selfGain * selfGainWeight);
+  const tempoScore = (selfTurns - projectedSelf) * tempoWeight + (selfGain * selfGainWeight);
   const masterPenalty = usesMasterBall ? (8 - Math.min(3, ctx.level || 0)) : 0;
   let planScore = (decision.score || 0) + impactScore + tempoScore - masterPenalty;
   if (planType === "block") planScore += 15;
