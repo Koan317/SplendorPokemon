@@ -4,7 +4,11 @@ function renderAll(){
   renderTokenPool();
   renderMarket();
   renderPlayers();
-  renderGameTimer();
+  if (typeof renderGameTimer === "function"){
+    renderGameTimer();
+  }else if (el.gameTimer){
+    el.gameTimer.textContent = "--:--";
+  }
   renderErrorBanner();
   renderActionButtons();
   if (el.handModal && !el.handModal.classList.contains("hidden")){
