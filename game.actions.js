@@ -205,31 +205,53 @@ function actionEvolve(){
   if (state.perTurn.evolved) return Promise.resolve(toast("本回合已完成一次进化", { type: "error" }));
 
   const p = currentPlayer();
-  if (!ui.selectedMarketCardId) return Promise.resolve(toast("先点击展示区选择要用于进化的卡牌", { type: "error" }));
-  const found = findMarketCard(ui.selectedMarketCardId);
-  if (!found) return Promise.resolve(toast("选择的卡不在展示区", { type: "error" }));
+  const playerIndex = state.currentPlayerIndex;
+  const usingReserved = !!ui.selectedReservedCard;
+  let marketCard, level, idx, reserveIndex;
+  let startEl = null;
 
-  const { level, idx, card: marketCard } = found;
+  if (usingReserved){
+    const { playerIndex: selectedPlayer, cardId } = ui.selectedReservedCard;
+    if (selectedPlayer !== playerIndex) return Promise.resolve(toast("只能使用自己的保留卡牌进行进化", { type: "error" }));
+    reserveIndex = p.reserved.findIndex(c => c.id === cardId);
+    if (reserveIndex < 0) return Promise.resolve(toast("该卡不在你的保留区", { type: "error" }));
+    marketCard = p.reserved[reserveIndex];
+    const reserveZone = findPlayerZone(playerIndex, ".reserve-zone");
+    startEl = reserveZone ? reserveZone.querySelector(`.mini-card[data-card-id="${marketCard.id}"]`) : null;
+  } else {
+    if (!ui.selectedMarketCardId) return Promise.resolve(toast("先点击展示区或保留区选择要用于进化的卡牌", { type: "error" }));
+    const found = findMarketCard(ui.selectedMarketCardId);
+    if (!found) return Promise.resolve(toast("选择的卡不在展示区", { type: "error" }));
+    ({ level, idx, card: marketCard } = found);
+    startEl = document.querySelector(`.market-card[data-card-id="${marketCard.id}"]`);
+  }
+
   const matchingBases = p.hand.filter(c => c?.evolution?.name === marketCard.name);
-  if (!matchingBases.length) return Promise.resolve(toast("该展示区卡牌无法进化你的任何手牌", { type: "error" }));
+  if (!matchingBases.length) return Promise.resolve(toast("该卡牌无法进化你的任何手牌", { type: "error" }));
 
   const baseCard = matchingBases.find(c => canAffordEvolution(p, c));
   if (!baseCard) return Promise.resolve(toast("精灵球标记不足，无法用该卡进行进化", { type: "error" }));
 
   payEvolutionCost(p, baseCard);
 
-  const startEl = document.querySelector(`.market-card[data-card-id="${marketCard.id}"]`);
   const handZone = findPlayerZone(state.currentPlayerIndex, ".hand-zone .zone-items");
 
-  state.market.slotsByLevel[level][idx] = null;
+  if (usingReserved){
+    p.reserved.splice(reserveIndex, 1);
+  } else {
+    state.market.slotsByLevel[level][idx] = null;
+  }
 
   const evolved = replaceWithEvolution(p, baseCard, marketCard);
 
   state.perTurn.evolved = true;
   ui.selectedMarketCardId = null;
+  ui.selectedReservedCard = null;
 
   return animateCardMove(startEl, handZone).then(() => {
-    state.market.slotsByLevel[level][idx] = drawFromDeck(level);
+    if (!usingReserved){
+      state.market.slotsByLevel[level][idx] = drawFromDeck(level);
+    }
     renderAll();
     toast(`${baseCard.name} 已进化为 ${marketCard.name}`);
     return true;
@@ -287,4 +309,3 @@ function endTurn(){
   renderAll();
   return true;
 }
-

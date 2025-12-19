@@ -56,7 +56,11 @@ function canBuyAnyCard(p){
 
 function canEvolveAnyCard(p){
   if (!p) return false;
-  for (const { card: marketCard } of marketCardsByLevels()){
+  const candidates = [
+    ...marketCardsByLevels().map(({ card }) => card),
+    ...p.reserved,
+  ];
+  for (const marketCard of candidates){
     if (!marketCard) continue;
     const bases = p.hand.filter(c => c?.evolution?.name === marketCard.name);
     if (!bases.length) continue;
@@ -107,4 +111,3 @@ function renderActionButtons(){
     el.classList.toggle("completed", taken === key);
   });
 }
-
