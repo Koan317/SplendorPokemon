@@ -1,6 +1,7 @@
 // ========== 10) 渲染 ==========
 function renderAll(){
   ensurePerTurnDefaults();
+  updateGameTimerDisplay();
   renderTokenPool();
   renderMarket();
   renderPlayers();

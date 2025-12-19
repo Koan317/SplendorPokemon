@@ -45,6 +45,7 @@ function resolveVictory(){
 
   const winner = ranking[0];
   state.victoryResolved = true;
+  finishGameTimer();
   showVictoryModal(winner);
 }
 

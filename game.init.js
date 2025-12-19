@@ -28,6 +28,7 @@ async function newGame(playerCount){
   refillMarketFromDecks();
 
   clearSelections();
+  startGameTimer();
   renderAll();
 }
 
@@ -85,4 +86,3 @@ function findMarketCard(cardId){
   }
   return null;
 }
-

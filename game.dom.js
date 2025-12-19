@@ -12,6 +12,7 @@ const el = {
   btnLoad: $("#btnLoad"),
   btnResetStorage: $("#btnResetStorage"),
   btnAiInfo: $("#btnAiInfo"),
+  gameTimer: $("#gameTimer"),
 
   modalOverlay: $("#modalOverlay"),
   confirmNewGameModal: $("#confirmNewGameModal"),
@@ -48,4 +49,3 @@ const el = {
   actEvolve: $("#actEvolve"),
   actEndTurn: $("#actEndTurn"),
 };
-
