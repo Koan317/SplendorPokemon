@@ -29,6 +29,7 @@ async function newGame(playerCount){
   refillMarketFromDecks();
 
   clearSelections();
+  startGameTimer();
   renderAll();
 }
 
