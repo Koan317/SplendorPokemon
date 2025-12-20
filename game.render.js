@@ -15,14 +15,19 @@ function renderAll(){
 
 function renderErrorBanner(){
   if (!el.errorBanner) return;
-  const message = ui.errorMessage || (lastLoadError ? `资源加载失败：${lastLoadError}` : "");
+  const hasStatusMessage = !!ui.statusMessage;
+  const message = ui.statusMessage || (lastLoadError ? `资源加载失败：${lastLoadError}` : "");
+  const type = hasStatusMessage ? (ui.statusType || "info") : (lastLoadError ? "error" : "info");
 
   if (message){
     el.errorBanner.textContent = message;
     el.errorBanner.classList.remove("hidden");
+    el.errorBanner.classList.toggle("error", type === "error");
+    el.errorBanner.classList.toggle("info", type !== "error");
   } else {
     el.errorBanner.textContent = "";
     el.errorBanner.classList.add("hidden");
+    el.errorBanner.classList.remove("error", "info");
   }
 }
 

@@ -3,7 +3,8 @@ async function newGame(playerCount){
   const lib = await loadCardLibrary();
   lastLoadError = null;
   state = makeEmptyState();
-  ui.errorMessage = "";
+  ui.statusMessage = "";
+  ui.statusType = "info";
   state.createdAt = new Date().toISOString();
   state.sessionEndedAt = null;
 

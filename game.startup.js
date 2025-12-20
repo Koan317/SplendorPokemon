@@ -17,7 +17,8 @@
     console.error("加载游戏失败", err);
     lastLoadError = err?.message || lastLoadError || "Failed to fetch";
     const hint = lastLoadError ? `资源加载失败：${lastLoadError}` : "资源加载失败：Failed to fetch";
-    ui.errorMessage = hint;
+    ui.statusMessage = hint;
+    ui.statusType = "error";
     // 即使卡牌未加载成功，也尝试渲染现有 UI，方便用户看到错误提示
     renderAll();
   }

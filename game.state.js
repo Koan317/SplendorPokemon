@@ -10,7 +10,8 @@ let ui = {
   selectedMarketCardId: null,     // for reserve/buy
   selectedReservedCard: null,     // {playerIndex, cardId}
   handPreviewPlayerIndex: null,
-  errorMessage: "",
+  statusMessage: "",
+  statusType: "info",
   tokenReturn: null,              // { playerIndex, required, selected: number[6] }
   sessionTimerInterval: null,
 };

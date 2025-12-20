@@ -299,7 +299,8 @@ function endTurn(){
     state.turn += 1;
   }
   state.perTurn = { evolved: false, primaryAction: null };
-  ui.errorMessage = "";
+  ui.statusMessage = "";
+  ui.statusType = "info";
 
   clearSelections();
   renderAll();

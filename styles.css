@@ -124,12 +124,22 @@ body {
 .error-banner {
     padding: 10px 12px;
     border-radius: 12px;
-    border: 1px solid rgba(248, 113, 113, 0.6);
-    background: rgba(248, 113, 113, 0.12);
-    color: #fecdd3;
     font-weight: 600;
     font-size: 14px;
     width: 100%;
+    border: 1px solid transparent;
+    background: rgba(255, 255, 255, 0.04);
+    color: #e5e7eb;
+}
+.error-banner.info {
+    border-color: rgba(96, 165, 250, 0.35);
+    background: rgba(59, 130, 246, 0.12);
+    color: #dbeafe;
+}
+.error-banner.error {
+    border: 1px solid rgba(248, 113, 113, 0.6);
+    background: rgba(248, 113, 113, 0.12);
+    color: #fecdd3;
 }
 
 .table-surface {

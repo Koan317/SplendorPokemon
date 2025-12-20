@@ -13,7 +13,8 @@ function toast(msg, { type = "info" } = {}){
 }
 
 function showStatusMessage(msg, { type = "info" } = {}){
-  ui.errorMessage = msg;
+  ui.statusMessage = msg;
+  ui.statusType = type;
   if (typeof renderErrorBanner === "function"){
     renderErrorBanner();
   }
