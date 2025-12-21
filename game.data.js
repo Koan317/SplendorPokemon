@@ -37,12 +37,28 @@ function normalizeCard(raw, level){
   };
 }
 
-function buildDecksFromLibrary(lib){
+function buildDecksFromLibrary(lib, { rewardDuplicateColor = null } = {}){
+  const decks = {
+    lv1: (lib.level_1 || []).map(c => normalizeCard(c, 1)),
+    lv2: (lib.level_2 || []).map(c => normalizeCard(c, 2)),
+    lv3: (lib.level_3 || []).map(c => normalizeCard(c, 3)),
+    rare: (lib.rare || []).map(c => normalizeCard(c, 4)),
+    legend: (lib.legend || []).map(c => normalizeCard(c, 5)),
+  };
+
+  const expandDeck = (deck) => {
+    if (rewardDuplicateColor === null) return deck;
+    const copies = deck
+      .filter(card => card?.reward?.ball_color === rewardDuplicateColor)
+      .map(card => ({ ...card, id: `${card.id}-dup-${Math.random().toString(16).slice(2)}` }));
+    return [...deck, ...copies];
+  };
+
   return {
-    lv1: shuffle((lib.level_1 || []).map(c => normalizeCard(c, 1))),
-    lv2: shuffle((lib.level_2 || []).map(c => normalizeCard(c, 2))),
-    lv3: shuffle((lib.level_3 || []).map(c => normalizeCard(c, 3))),
-    rare: shuffle((lib.rare || []).map(c => normalizeCard(c, 4))),
-    legend: shuffle((lib.legend || []).map(c => normalizeCard(c, 5))),
+    lv1: shuffle(expandDeck(decks.lv1)),
+    lv2: shuffle(expandDeck(decks.lv2)),
+    lv3: shuffle(expandDeck(decks.lv3)),
+    rare: shuffle(expandDeck(decks.rare)),
+    legend: shuffle(expandDeck(decks.legend)),
   };
 }

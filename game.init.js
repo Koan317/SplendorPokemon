@@ -8,6 +8,7 @@ async function newGame(playerCount){
   state.sessionEndedAt = null;
 
   state.tokenPool = makeTokenPoolByPlayerCount(playerCount);
+  const rewardDuplicateColor = playerCount === 5 ? Math.floor(Math.random() * 5) : null;
 
   state.players = [];
   for (let i=0;i<playerCount;i++){
@@ -26,7 +27,7 @@ async function newGame(playerCount){
   state.turn = 1;
   state.perTurn = { evolved: false, primaryAction: null };
 
-  state.decks = buildDecksFromLibrary(lib);
+  state.decks = buildDecksFromLibrary(lib, { rewardDuplicateColor });
   refillMarketFromDecks();
 
   clearSelections();
@@ -38,6 +39,7 @@ async function newGame(playerCount){
 function makeTokenPoolByPlayerCount(n){
   if (n === 2) return [4,4,4,4,4,5];
   if (n === 3) return [6,6,6,6,6,5];
+  if (n === 5) return [8,8,8,8,8,6];
   return [7,7,7,7,7,5];
 }
 
