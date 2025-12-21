@@ -50,10 +50,8 @@ function levelKey(level){
 }
 
 function drawFromDeck(level){
-  const key = levelKey(level);
-  const deck = state.decks[key];
-  if (!deck || deck.length === 0) return null;
-  return deck.pop();
+  const deck = state.decks[levelKey(level)];
+  return deck?.length ? deck.pop() : null;
 }
 
 function ensureMarketSlotsByLevel(level){

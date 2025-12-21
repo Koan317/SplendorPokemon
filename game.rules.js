@@ -35,9 +35,7 @@ function totalTrophiesOfPlayer(p){
 }
 
 function penaltyHandCount(p){
-  const withStack = flattenHandCards(p, true).length;
-  const withoutStack = flattenHandCards(p, false).length;
-  return Math.max(0, withStack - withoutStack);
+  return Math.max(0, flattenHandCards(p, true).length - flattenHandCards(p, false).length);
 }
 
 function trophyCardCount(p){
