@@ -106,6 +106,7 @@ function actionReserve(){
 
   state.market.slotsByLevel[level][idx] = null;
   p.reserved.push(card);
+  const reserveSlotIndex = p.reserved.length - 1;
 
   let gotMaster = false;
   const animations = [];
@@ -123,7 +124,7 @@ function actionReserve(){
   clearSelections();
 
   return Promise.all([
-    animateCardMove(startEl, targetZone),
+    animateCardMove(startEl, targetZone, 800, calculateReserveSlotOffset(targetZone, reserveSlotIndex)),
     animateTokenBatch(animations),
   ]).then(() => {
     state.market.slotsByLevel[level][idx] = drawFromDeck(level);
