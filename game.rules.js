@@ -332,7 +332,27 @@ function findPlayerTokenSlot(playerIndex, color){
   return document.querySelector(`.player[data-player-index="${playerIndex}"] .token-zone .token-mini[data-color="${color}"]`);
 }
 
-function animateCardMove(startEl, targetEl, duration = 800){
+function calculateReserveSlotOffset(targetEl, slotIndex){
+  if (!targetEl) return { offsetX: 0, offsetY: 0 };
+  if (slotIndex !== 0 && slotIndex !== 2) return { offsetX: 0, offsetY: 0 };
+
+  const targetRect = targetEl.getBoundingClientRect();
+  if (!targetRect.width) return { offsetX: 0, offsetY: 0 };
+
+  const rootStyles = getComputedStyle(document.documentElement);
+  const targetStyles = getComputedStyle(targetEl);
+  const miniWidth = parseFloat(rootStyles.getPropertyValue("--mini-card-w")) || targetRect.width / 3;
+  const gap = parseFloat(targetStyles.columnGap || targetStyles.gap || "0") || 0;
+
+  const contentWidth = miniWidth * 3 + gap * 2;
+  const leftPadding = Math.max(0, (targetRect.width - contentWidth) / 2);
+  const slotCenterX = targetRect.left + leftPadding + miniWidth * (slotIndex + 0.5) + gap * slotIndex;
+  const targetCenterX = targetRect.left + targetRect.width / 2;
+
+  return { offsetX: slotCenterX - targetCenterX, offsetY: 0 };
+}
+
+function animateCardMove(startEl, targetEl, duration = 800, options = {}){
   if (!startEl || !targetEl) return Promise.resolve();
   const startRect = startEl.getBoundingClientRect();
   const targetRect = targetEl.getBoundingClientRect();
@@ -343,8 +363,8 @@ function animateCardMove(startEl, targetEl, duration = 800){
     y: startRect.top + startRect.height / 2,
   };
   const targetCenter = {
-    x: targetRect.left + targetRect.width / 2,
-    y: targetRect.top + targetRect.height / 2,
+    x: targetRect.left + targetRect.width / 2 + (options.offsetX || 0),
+    y: targetRect.top + targetRect.height / 2 + (options.offsetY || 0),
   };
 
   const rootStyles = getComputedStyle(document.documentElement);
