@@ -27,6 +27,10 @@ async function newGame(playerCount){
   state.perTurn = { evolved: false, primaryAction: null };
 
   state.decks = buildDecksFromLibrary(lib);
+  if (playerCount === 5){
+    const duplicatedRewardColor = Math.floor(Math.random()*5);
+    duplicateCardsByRewardColor(state.decks, duplicatedRewardColor);
+  }
   refillMarketFromDecks();
 
   clearSelections();
@@ -38,7 +42,19 @@ async function newGame(playerCount){
 function makeTokenPoolByPlayerCount(n){
   if (n === 2) return [4,4,4,4,4,5];
   if (n === 3) return [6,6,6,6,6,5];
+  if (n === 5) return [8,8,8,8,8,6];
   return [7,7,7,7,7,5];
+}
+
+function duplicateCardsByRewardColor(decks, ballColor){
+  if (!decks) return;
+  for (const key of Object.keys(decks)){
+    const cards = decks[key] || [];
+    const duplicates = cards
+      .filter(card => card?.reward?.ball_color === ballColor)
+      .map(card => ({ ...card, id: `${card.id}-dup-${Math.random().toString(16).slice(2)}` }));
+    decks[key] = shuffle([...cards, ...duplicates]);
+  }
 }
 
 function levelKey(level){
