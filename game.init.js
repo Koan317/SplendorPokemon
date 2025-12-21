@@ -1,6 +1,7 @@
 // ========== 5) 新游戏初始化 ==========
 async function newGame(playerCount){
-  const lib = await loadCardLibrary();
+  const loadedLib = await loadCardLibrary();
+  const lib = prepareLibraryForPlayerCount(loadedLib, playerCount);
   lastLoadError = null;
   state = makeEmptyState();
   ui.errorMessage = "";
@@ -38,7 +39,42 @@ async function newGame(playerCount){
 function makeTokenPoolByPlayerCount(n){
   if (n === 2) return [4,4,4,4,4,5];
   if (n === 3) return [6,6,6,6,6,5];
+  if (n === 5) return [8,8,8,8,8,6];
   return [7,7,7,7,7,5];
+}
+
+function prepareLibraryForPlayerCount(lib, playerCount){
+  if (playerCount !== 5) return lib;
+  const colorToCopy = randomIntInclusive(0, 4);
+  const cloned = JSON.parse(JSON.stringify(lib || {}));
+  return cloneLibraryWithExtraRewardColorCards(cloned, colorToCopy);
+}
+
+function randomIntInclusive(min, max){
+  return Math.floor(Math.random() * (max - min + 1)) + min;
+}
+
+function cloneLibraryWithExtraRewardColorCards(lib, ballColor){
+  const deckKeys = ["level_1", "level_2", "level_3", "rare", "legend"];
+  deckKeys.forEach(key => {
+    const cards = lib[key] || [];
+    const copies = cards
+      .filter(card => card?.reward?.ball_color === ballColor)
+      .map((card, idx) => {
+        const copy = { ...card };
+        const uniqueSuffix = `${ballColor}-${idx}-${Math.random().toString(16).slice(2)}`;
+        if (copy.md5){
+          copy.md5 = `${copy.md5}-copy-${uniqueSuffix}`;
+        } else if (copy.id){
+          copy.id = `${copy.id}-copy-${uniqueSuffix}`;
+        } else {
+          copy.id = `copy-${uniqueSuffix}`;
+        }
+        return copy;
+      });
+    lib[key] = [...cards, ...copies];
+  });
+  return lib;
 }
 
 function levelKey(level){
