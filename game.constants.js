@@ -45,5 +45,4 @@ const AI_LEVEL_OPTIONS = [
   { value: 3, label: "进阶" },
   { value: 4, label: "大师" },
 ];
-const AI_BLUNDER_RATE = [0.6, 0.4, 0.2, 0.05, 0.0];
 const AI_DELAY_MS = 420;

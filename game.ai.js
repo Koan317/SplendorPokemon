@@ -1,6 +1,151 @@
 // ========== 11) AI 自动操作 ==========
 let aiRunning = false;
 
+const VISION_LEVELS = Object.freeze({
+  SELF_ONLY: "self_only",          // 只能看到市场 + 自己信息
+  STANDARD: "standard",            // 与真人相同：市场 + 所有玩家公开信息
+  LEVEL1_SEQUENCE: "level1_seq",   // 额外知道 1 级牌的抽牌顺序
+  FULL_SEQUENCE: "full_seq",       // 额外知道所有牌堆顺序
+});
+
+const AI_PROFILES = [
+  {
+    label: "入门",
+    visionLevel: VISION_LEVELS.SELF_ONLY,
+    planningDepth: 1,
+    strategyConstraints: {
+      canBlockOpponent: false,
+      canPreemptiveReserve: false,
+      canSpendMasterBallAggressively: false,
+      mustKeepReserveSlot: true,
+      allowedSacrificeLevel: 0,
+    },
+  },
+  {
+    label: "简单",
+    visionLevel: VISION_LEVELS.STANDARD,
+    planningDepth: 1,
+    strategyConstraints: {
+      canBlockOpponent: true,
+      canPreemptiveReserve: false,
+      canSpendMasterBallAggressively: false,
+      mustKeepReserveSlot: true,
+      allowedSacrificeLevel: 1,
+    },
+  },
+  {
+    label: "标准",
+    visionLevel: VISION_LEVELS.STANDARD,
+    planningDepth: 2,
+    strategyConstraints: {
+      canBlockOpponent: true,
+      canPreemptiveReserve: true,
+      canSpendMasterBallAggressively: true,
+      mustKeepReserveSlot: false,
+      allowedSacrificeLevel: 1,
+    },
+  },
+  {
+    label: "进阶",
+    visionLevel: VISION_LEVELS.LEVEL1_SEQUENCE,
+    planningDepth: 3,
+    strategyConstraints: {
+      canBlockOpponent: true,
+      canPreemptiveReserve: true,
+      canSpendMasterBallAggressively: true,
+      mustKeepReserveSlot: false,
+      allowedSacrificeLevel: 2,
+    },
+  },
+  {
+    label: "大师",
+    visionLevel: VISION_LEVELS.FULL_SEQUENCE,
+    planningDepth: 4,
+    strategyConstraints: {
+      canBlockOpponent: true,
+      canPreemptiveReserve: true,
+      canSpendMasterBallAggressively: true,
+      mustKeepReserveSlot: false,
+      allowedSacrificeLevel: 3,
+    },
+  },
+];
+
+function getAiProfile(level){
+  if (level < 0) return null;
+  return AI_PROFILES[level] || AI_PROFILES[AI_PROFILES.length - 1];
+}
+
+function cloneCard(card){
+  if (!card) return null;
+  return { ...card, cost: Array.isArray(card.cost) ? card.cost.map(c => ({ ...c })) : [] };
+}
+
+function getVisibleGameState(player, aiProfile){
+  if (!player || !aiProfile) return null;
+  const vision = aiProfile.visionLevel;
+  const canSeePlayers = vision !== VISION_LEVELS.SELF_ONLY;
+  const canSeeDeckLevel1 = vision === VISION_LEVELS.LEVEL1_SEQUENCE || vision === VISION_LEVELS.FULL_SEQUENCE;
+  const canSeeAllDecks = vision === VISION_LEVELS.FULL_SEQUENCE;
+
+  const players = state.players.map((p, idx) => {
+    const isSelf = p === player;
+    if (!isSelf && !canSeePlayers) return null;
+    const snapshot = {
+      index: idx,
+      name: p.name,
+      isSelf,
+      trophies: totalTrophiesOfPlayer(p),
+      tokens: { ...(p.tokens || {}) },
+      reserved: (p.reserved || []).map(cloneCard),
+      hand: (p.hand || []).map(cloneCard),
+      isHuman: getPlayerAiLevel(p, idx) < 0,
+      aiLevel: getPlayerAiLevel(p, idx),
+    };
+    return snapshot;
+  }).filter(Boolean);
+
+  const decks = {};
+  if (canSeeDeckLevel1) decks[levelKey(1)] = (state.decks[levelKey(1)] || []).map(cloneCard);
+  if (canSeeAllDecks){
+    [1,2,3,4,5].forEach(lv => { decks[levelKey(lv)] = (state.decks[levelKey(lv)] || []).map(cloneCard); });
+  }
+
+  const market = Object.keys(state.market.slotsByLevel || {}).reduce((map, key) => {
+    const level = Number(key);
+    map[level] = (state.market.slotsByLevel[level] || []).map(cloneCard);
+    return map;
+  }, {});
+
+  return {
+    turn: state.turn,
+    tokenPool: { ...(state.tokenPool || {}) },
+    market,
+    decks,
+    players,
+  };
+}
+
+function visibleMarketCards(visibleState, levels = [1,2,3,4,5]){
+  if (!visibleState?.market) return [];
+  const requested = new Set(levels);
+  return Object.keys(visibleState.market)
+    .map(k => Number(k))
+    .filter(level => requested.has(level))
+    .flatMap(level => (visibleState.market[level] || []).map(card => ({ level, card })));
+}
+
+function visiblePlayerSnapshot(visibleState, player){
+  if (!visibleState?.players) return null;
+  const idx = state.players.indexOf(player);
+  return visibleState.players.find(p => p.index === idx) || null;
+}
+
+function visibleOpponents(visibleState, player){
+  const selfIdx = state.players.indexOf(player);
+  return (visibleState?.players || []).filter(p => p.index !== selfIdx);
+}
+
 function aiCardScore(card, player, ctx = {}){
   const point = Number(card?.point) || 0;
   const reward = Number(card?.reward?.number) || 0;
@@ -31,25 +176,28 @@ function aiFuturePromise(card, knownDecks){
   return (nextScore && nextScore > (Number(card.point) || 0)) ? -5 : 5;
 }
 
-function aiEstimateTurnsToWin(player, ctx = {}){
-  if (!player) return Infinity;
-  const remain = Math.max(0, 18 - totalTrophiesOfPlayer(player));
+function aiEstimateTurnsToWin(player, visibleState, ctx = {}){
+  if (!player || !visibleState) return Infinity;
+  const playerView = visiblePlayerSnapshot(visibleState, player);
+  const trophies = playerView ? playerView.trophies : totalTrophiesOfPlayer(player);
+  const remain = Math.max(0, 18 - trophies);
   if (remain === 0) return 0;
 
   const rewardBonuses = rewardBonusesOfPlayer(player) || [];
   const bonusGain = Math.max(0, rewardBonuses.reduce((s, n) => s + (n || 0), 0) / 4);
-  const recentRate = state.turn > 1 ? (totalTrophiesOfPlayer(player) / Math.max(1, state.turn - 1)) : 0;
+  const recentRate = visibleState.turn > 1 ? (trophies / Math.max(1, visibleState.turn - 1)) : 0;
   const baselineGain = Math.max(1, Math.min(5, 1 + bonusGain + recentRate));
 
   const estimateCtx = {
     level: ctx.level,
     knownDecks: ctx.knownDecks || {},
+    visibleState,
     opponentTurnDistance: () => Infinity,
     threatBonus: () => 0,
     futurePromise(card){ return aiFuturePromise(card, ctx.knownDecks); },
   };
 
-  const goal = aiSelectGoalCard(player, estimateCtx) || aiSelectReserveTarget(player, estimateCtx);
+  const goal = aiSelectGoalCard(player, estimateCtx, visibleState) || aiSelectReserveTarget(player, estimateCtx, visibleState);
   const bestPoint = Math.max(1, Number(goal?.card?.point) || 1);
   const turnsToCard = goal?.card ? (aiTurnsToAfford(player, goal.card, estimateCtx, true) + 1) : 2;
   const optimisticGain = Math.max(bestPoint, baselineGain);
@@ -57,48 +205,45 @@ function aiEstimateTurnsToWin(player, ctx = {}){
   return Math.max(turnsToCard, cycles);
 }
 
-function aiBuildContext(player, level){
-  const isSuperLv3 = level >= 3;
-  const isSuperLv4 = level >= 4;
+function aiBuildContext(player, profile, visibleState){
+  const level = AI_PROFILES.indexOf(profile);
+  const planningDepth = profile?.planningDepth || 1;
   const knownDecks = {};
-  if (isSuperLv3){
-    knownDecks[1] = state.decks[levelKey(1)] || [];
+  if (profile.visionLevel === VISION_LEVELS.LEVEL1_SEQUENCE || profile.visionLevel === VISION_LEVELS.FULL_SEQUENCE){
+    knownDecks[1] = visibleState?.decks?.[levelKey(1)] || [];
   }
-  if (isSuperLv4){
-    [1,2,3,4,5].forEach(lv => { knownDecks[lv] = state.decks[levelKey(lv)] || []; });
+  if (profile.visionLevel === VISION_LEVELS.FULL_SEQUENCE){
+    [1,2,3,4,5].forEach(lv => { knownDecks[lv] = visibleState?.decks?.[levelKey(lv)] || []; });
   }
 
-  const opponentSnapshot = state.players
-    .map((p, idx) => ({ p, idx }))
-    .filter(item => item.p !== player);
-
-  const baselineCtx = { level, knownDecks };
-  const selfEstimatedTurns = aiEstimateTurnsToWin(player, baselineCtx);
+  const opponentSnapshot = visibleOpponents(visibleState, player);
+  const baselineCtx = { level, knownDecks, visibleState };
+  const selfEstimatedTurns = aiEstimateTurnsToWin(player, visibleState, baselineCtx);
   const urgentOpponents = opponentSnapshot.map(item => ({
-    p: item.p,
-    idx: item.idx,
-    turns: aiEstimateTurnsToWin(item.p, baselineCtx),
-    trophies: totalTrophiesOfPlayer(item.p),
-    isHuman: getPlayerAiLevel(item.p, item.idx) < 0,
+    view: item,
+    turns: aiEstimateTurnsToWin(state.players[item.index], visibleState, baselineCtx),
+    trophies: item.trophies,
+    isHuman: item.isHuman,
   }));
 
-  const humanPrimary = isSuperLv4 ? urgentOpponents.find(o => o.isHuman) : null;
   const fastestOpponent = urgentOpponents.reduce((best, cur) => {
     if (!best || cur.turns < best.turns) return cur;
     return best;
   }, null);
 
-  const dangerousOpponent = humanPrimary || fastestOpponent;
+  const dangerousOpponent = fastestOpponent;
   const dangerousOpponentEstimatedTurnsToWin = dangerousOpponent ? dangerousOpponent.turns : Infinity;
+  const threatWindow = Math.min(planningDepth + 1, 4);
 
-  const mustBlock = dangerousOpponent && (
+  const mustBlock = dangerousOpponent && planningDepth > 0 && (
     dangerousOpponentEstimatedTurnsToWin <= selfEstimatedTurns ||
-    (18 - dangerousOpponent.trophies) <= 2 ||
-    dangerousOpponentEstimatedTurnsToWin <= 3
+    (18 - dangerousOpponent.trophies) <= threatWindow ||
+    dangerousOpponentEstimatedTurnsToWin <= threatWindow
   );
 
   return {
     level,
+    planningDepth,
     knownDecks,
     urgentOpponents,
     selfEstimatedTurns,
@@ -110,10 +255,11 @@ function aiBuildContext(player, level){
     threatBonus(card){
       if (level < 1 || !card) return 0;
       let bonus = 0;
-      urgentOpponents.forEach(({ p, turns }) => {
-        if (!p) return;
-        if (canAfford(p, card)) bonus += 40 + (Number(card.point) || 0) * 15;
-        else if (turns <= 3 && (Number(card.point) || 0) >= 2){
+      urgentOpponents.forEach(({ view, turns }) => {
+        const opponent = state.players[view.index];
+        if (!opponent) return;
+        if (canAfford(opponent, card)) bonus += 40 + (Number(card.point) || 0) * 15;
+        else if (turns <= planningDepth + 1 && (Number(card.point) || 0) >= 2){
           bonus += 20;
         }
       });
@@ -125,8 +271,9 @@ function aiBuildContext(player, level){
     opponentTurnDistance(card){
       if (!card) return Infinity;
       let best = Infinity;
-      urgentOpponents.forEach(({ p }) => {
-        const dist = aiTurnsToAfford(p, card, { level }, true);
+      urgentOpponents.forEach(({ view }) => {
+        const opponent = state.players[view.index];
+        const dist = aiTurnsToAfford(opponent, card, { level }, true);
         best = Math.min(best, dist);
       });
       return best;
@@ -134,12 +281,12 @@ function aiBuildContext(player, level){
   };
 }
 
-function aiSelectBuyTarget(player, ctx){
+function aiSelectBuyTarget(player, ctx, visibleState){
   const candidates = [];
   player.reserved.forEach(card => {
     if (card && canAfford(player, card)) candidates.push({ source: "reserved", card });
   });
-  marketCardsByLevels().forEach(({ card }) => {
+  visibleMarketCards(visibleState).forEach(({ card }) => {
     if (card && canAfford(player, card)) candidates.push({ source: "market", card });
   });
   if (!candidates.length) return null;
@@ -147,10 +294,10 @@ function aiSelectBuyTarget(player, ctx){
   return candidates[0];
 }
 
-function aiSelectEvolveTarget(player, ctx){
+function aiSelectEvolveTarget(player, ctx, visibleState){
   const options = [];
   const candidates = [
-    ...marketCardsByLevels().map(({ card }) => ({ card, source: "market" })),
+    ...visibleMarketCards(visibleState).map(({ card }) => ({ card, source: "market" })),
     ...player.reserved.map(card => ({ card, source: "reserved" })),
   ];
 
@@ -181,17 +328,17 @@ function aiReserveScore(card, player, ctx){
   return score;
 }
 
-function aiSelectReserveTarget(player, ctx){
-  const reservable = marketCardsByLevels([1,2,3]).filter(({ card }) => card);
+function aiSelectReserveTarget(player, ctx, visibleState){
+  const reservable = visibleMarketCards(visibleState, [1,2,3]).filter(({ card }) => card);
   if (!reservable.length) return null;
   reservable.sort((a, b) => aiReserveScore(b.card, player, ctx) - aiReserveScore(a.card, player, ctx));
   return reservable[0];
 }
 
-function aiSelectGoalCard(player, ctx){
+function aiSelectGoalCard(player, ctx, visibleState){
   const candidates = [];
   player.reserved.forEach(card => { if (card) candidates.push({ source: "reserved", card }); });
-  marketCardsByLevels().forEach(({ card, level }) => { if (card) candidates.push({ source: level, card }); });
+  visibleMarketCards(visibleState).forEach(({ card, level }) => { if (card) candidates.push({ source: level, card }); });
   if (!candidates.length) return null;
 
   function planScore(card){
@@ -260,7 +407,8 @@ function aiWouldSpendMasterBall(player, card){
 function aiPlanOpponentImpact(decision, ctx){
   const card = decision?.target?.card;
   const nextCard = decision?.planMeta?.revealNext;
-  const dangerous = ctx.dangerousOpponent?.p;
+  const dangerousView = ctx.dangerousOpponent?.view;
+  const dangerous = dangerousView ? state.players[dangerousView.index] : null;
   const cards = [card, nextCard].filter(Boolean);
   if (!cards.length) return 0;
 
@@ -280,56 +428,66 @@ function aiPlanOpponentImpact(decision, ctx){
   return 0;
 }
 
-function aiDetectPlanType(decision, ctx){
+function aiDetectPlanType(decision, ctx, profile){
   if (!decision) return "develop";
+  const planningWindow = profile?.planningDepth || 1;
+  const threatDistance = decision.target?.card ? ctx.opponentTurnDistance(decision.target.card) : Infinity;
+  const withinWindow = Number.isFinite(threatDistance) && threatDistance <= planningWindow + 1;
   if (decision.planMeta?.opponentThreat) return "block";
+  if (withinWindow && ctx.blockOrLose) return "block";
   if (decision.planMeta?.revealNext) return "reveal";
-  const isBlock = decision.target?.card && ctx.opponentTurnDistance(decision.target.card) <= 2;
-  if (isBlock) return "block";
   if (decision.type === "take3" || decision.type === "take2") return "economy";
   return "develop";
 }
 
-function aiEvaluatePlan(decision, player, ctx, planType){
+function aiEvaluatePlan(decision, player, ctx, planType, profile, visibleState){
   if (!decision) return null;
+  const constraints = profile?.strategyConstraints || {};
   const usesMasterBall = decision.target?.card && aiWouldSpendMasterBall(player, decision.target.card);
+  if (planType === "block" && !constraints.canBlockOpponent) return null;
+  if (decision.type === "reserve" && constraints.mustKeepReserveSlot && player.reserved.length >= 2) return null;
+  if (decision.type === "reserve" && !constraints.canPreemptiveReserve){
+    const threatDistance = decision.target?.card ? ctx.opponentTurnDistance(decision.target.card) : Infinity;
+    if (threatDistance > (ctx.planningDepth || 1)) return null;
+  }
+  if (usesMasterBall && !constraints.canSpendMasterBallAggressively){
+    const mustUseMaster = decision.type === "buy" && !!decision.target?.card && !canAfford(player, decision.target.card, true);
+    if (!mustUseMaster) return null;
+  }
+
   const selfGain = Number(decision.target?.card?.point) || 0;
+  const turnsToAfford = decision.target?.card
+    ? aiTurnsToAfford(player, decision.target.card, ctx, constraints.canSpendMasterBallAggressively)
+    : 0;
   const selfTurns = Number.isFinite(ctx.selfEstimatedTurns) ? ctx.selfEstimatedTurns : 8;
   const projectedSelf = Math.max(0, selfTurns - (selfGain > 0 ? 1 : 0));
   const opponentImpact = aiPlanOpponentImpact(decision, ctx);
   const projectedOpponent = ctx.dangerousOpponent ? ctx.dangerousOpponent.turns + opponentImpact : Infinity;
-  const relativeSafety = ctx.dangerousOpponent ? (projectedOpponent - ctx.selfEstimatedTurns) : 0;
-  const impactScore = opponentImpact * 32 + relativeSafety * (ctx.level >= 3 ? 3 : 6); // 长线只作为软偏好
-  const tempoWeight = ctx.level >= 3 ? 8 : 12;
-  const selfGainWeight = ctx.level >= 3 ? 8 : 6;
-  const tempoScore = (selfTurns - projectedSelf) * tempoWeight + (selfGain * selfGainWeight);
-  const masterPenaltyBase = usesMasterBall ? (8 - Math.min(3, ctx.level || 0)) : 0;
-  const masterPenalty = masterPenaltyBase * (ctx.level >= 3 ? 0.6 : 1); // 高难度降低惩罚，便于出手
   const baseOpponentTurns = Number.isFinite(ctx.dangerousOpponentEstimatedTurnsToWin)
     ? ctx.dangerousOpponentEstimatedTurnsToWin
     : Infinity;
   const delayOpponentBy = (Number.isFinite(baseOpponentTurns) && Number.isFinite(projectedOpponent))
     ? Math.max(0, baseOpponentTurns - projectedOpponent)
     : 0;
-  const overflowPenalty = decision.planMeta?.overflow ? (ctx.level >= 3 ? 9 : 18) : 0; // 高难度溢出惩罚减半
-  let planScore = (decision.score || 0)
-    + impactScore
-    + tempoScore
-    - masterPenalty
-    - overflowPenalty
-    + Math.max(0, delayOpponentBy) * 10;
-  if (planType === "block") planScore += 15;
-  if (planType === "reveal") planScore += 12;
-  if (ctx.level >= 4 && ctx.mustBlock && planType === "block") planScore += 30;
-  if (ctx.level >= 4 && ctx.dangerousOpponent?.isHuman && ctx.dangerousOpponentEstimatedTurnsToWin <= 2){
-    if (planType === "block") planScore += 40;
-    else if (opponentImpact === 0) planScore -= 25;
+
+  const tempoWeight = 12 - Math.min(6, ctx.planningDepth * 2);
+  const selfProgressScore = (selfGain * 80) - (turnsToAfford * tempoWeight) + (decision.score || 0);
+  const opponentDelayScore = (planType === "block" ? 30 : 0) + delayOpponentBy * 40 + opponentImpact * 30;
+  const overflowPenalty = decision.planMeta?.overflow ? 30 : 0;
+  const masterPenalty = usesMasterBall ? (constraints.canSpendMasterBallAggressively ? 6 : 20) : 0;
+  const reservePenalty = (decision.type === "reserve" && constraints.mustKeepReserveSlot && player.reserved.length >= 1) ? 10 : 0;
+  const riskCost = overflowPenalty + masterPenalty + reservePenalty;
+
+  let resourceEfficiency = 0;
+  if (decision.type === "take3" || decision.type === "take2"){
+    resourceEfficiency = 10 + (decision.colors?.length || 0) * 5;
+  } else if (decision.type === "buy" || decision.type === "evolve"){
+    resourceEfficiency = 20 + (decision.target?.card?.reward?.number || 0) * 4;
+  } else if (decision.type === "reserve"){
+    resourceEfficiency = 8;
   }
 
-  // Skip low-value blocking that doesn't delay or improve winning odds.
-  if (planType === "block" && opponentImpact < 2 && delayOpponentBy < 2 && projectedSelf >= selfTurns && selfGain <= 1){
-    planScore -= 28; // 直接降分而非否决，放松约束避免卡手
-  }
+  const compositeScore = selfProgressScore + opponentDelayScore + resourceEfficiency - riskCost;
 
   return {
     decision,
@@ -339,14 +497,20 @@ function aiEvaluatePlan(decision, player, ctx, planType){
     delayOpponentBy,
     usesMasterBall,
     selfGain,
-    planScore,
+    evaluation: {
+      selfProgressScore,
+      opponentDelayScore,
+      riskCost,
+      resourceEfficiency,
+    },
+    compositeScore,
   };
 }
 
-function aiPickTake3Colors(player, targetCard, ctx){
+function aiPickTake3Colors(player, targetCard, ctx, visibleState){
   const available = BALL_KEYS
     .map((_, idx) => idx)
-    .filter(idx => idx !== Ball.master_ball && state.tokenPool[idx] > 0);
+    .filter(idx => idx !== Ball.master_ball && (visibleState?.tokenPool?.[idx] || 0) > 0);
   if (!available.length) return [];
   const targetNeed = aiCostDeficit(targetCard, player);
   available.sort((a, b) => {
@@ -354,14 +518,14 @@ function aiPickTake3Colors(player, targetCard, ctx){
     if (needDiff !== 0) return needDiff;
     const needScore = aiColorNeedScore(player, a) - aiColorNeedScore(player, b);
     if (needScore !== 0) return needScore;
-    return state.tokenPool[b] - state.tokenPool[a];
+    return (visibleState?.tokenPool?.[b] || 0) - (visibleState?.tokenPool?.[a] || 0);
   });
   const picked = available.slice(0, Math.min(3, available.length));
   if (ctx.level === 0) return picked.slice().reverse();
   return picked;
 }
 
-function aiPickTake2Color(player, targetCard){
+function aiPickTake2Color(player, targetCard, visibleState){
   const options = BALL_KEYS
     .map((_, idx) => idx)
     .filter(idx => idx !== Ball.master_ball && canTakeTwoSame(idx));
@@ -372,25 +536,26 @@ function aiPickTake2Color(player, targetCard){
     if (needDiff !== 0) return needDiff;
     const needScore = aiColorNeedScore(player, a) - aiColorNeedScore(player, b);
     if (needScore !== 0) return needScore;
-    return state.tokenPool[b] - state.tokenPool[a];
+    return (visibleState?.tokenPool?.[b] || 0) - (visibleState?.tokenPool?.[a] || 0);
   });
   return options[0];
 }
 
-function aiShouldReserve(player, ctx, target){
+function aiShouldReserve(player, ctx, target, profile, visibleState){
   if (!target) return false;
   if (player.reserved.length >= 3) return false;
   const opponentDistance = ctx.opponentTurnDistance(target.card);
   if (opponentDistance > 1 && player.reserved.length >= 2 && totalTrophiesOfPlayer(player) < 15) return false; // E
   if (player.reserved.length >= 1 && ctx.level === 0) return false; // B 入门少保留
-  if (ctx.level >= 2 && state.tokenPool[Ball.master_ball] <= 0 && player.reserved.length >= 2) return false; // C
+  if (profile?.strategyConstraints?.mustKeepReserveSlot && player.reserved.length >= 2) return false;
+  if (ctx.level >= 2 && (visibleState?.tokenPool?.[Ball.master_ball] || 0) <= 0 && player.reserved.length >= 2) return false; // C
   return true;
 }
 
-function aiSelectRevealDecision(player, ctx, availability){
+function aiSelectRevealDecision(player, ctx, availability, visibleState){
   if (ctx.level < 3) return null;
   let best = null;
-  for (const { card, level } of marketCardsByLevels([1,2,3])){
+  for (const { card, level } of visibleMarketCards(visibleState, [1,2,3])){
     if (!card) continue;
     const deck = ctx.knownDecks[level];
     if (!deck || !deck.length) continue;
@@ -419,37 +584,39 @@ function aiSelectRevealDecision(player, ctx, availability){
 }
 
 function chooseAiAction(player, level){
+  const profile = getAiProfile(level);
+  const visibleState = getVisibleGameState(player, profile);
   const availability = getActionAvailability();
-  const ctx = aiBuildContext(player, level);
+  const ctx = aiBuildContext(player, profile, visibleState);
   const decisions = [];
-  const goal = aiSelectGoalCard(player, ctx);
+  const goal = aiSelectGoalCard(player, ctx, visibleState);
   const blockOrLose = ctx.blockOrLose;
 
   if (availability.buy){
-    const target = aiSelectBuyTarget(player, ctx);
+    const target = aiSelectBuyTarget(player, ctx, visibleState);
     if (target) decisions.push({ type: "buy", target, score: aiCardScore(target.card, player, ctx) + 20 });
   }
 
   if (availability.evolve){
-    const target = aiSelectEvolveTarget(player, ctx);
+    const target = aiSelectEvolveTarget(player, ctx, visibleState);
     if (target) decisions.push({ type: "evolve", target, score: aiCardScore(target.card, player, ctx) });
   }
 
   if (availability.reserve){
-    const target = aiSelectReserveTarget(player, ctx);
-    if (aiShouldReserve(player, ctx, target)){
+    const target = aiSelectReserveTarget(player, ctx, visibleState);
+    if (aiShouldReserve(player, ctx, target, profile, visibleState)){
       decisions.push({ type: "reserve", target, score: aiReserveScore(target?.card, player, ctx) - 5 });
     }
   }
 
-  const revealDecision = aiSelectRevealDecision(player, ctx, availability);
+  const revealDecision = aiSelectRevealDecision(player, ctx, availability, visibleState);
   if (revealDecision) decisions.push(revealDecision);
 
-  const desireCard = decisions.length ? decisions[0].target?.card : aiSelectReserveTarget(player, ctx)?.card;
+  const desireCard = decisions.length ? decisions[0].target?.card : aiSelectReserveTarget(player, ctx, visibleState)?.card;
   const plannedCard = goal?.card || desireCard;
 
   if (availability.take3){
-    const colors = aiPickTake3Colors(player, plannedCard, ctx);
+    const colors = aiPickTake3Colors(player, plannedCard, ctx, visibleState);
     const projectedTokens = totalTokensOfPlayer(player) + colors.length;
     if (colors.length){
       const overflow = projectedTokens > 10;
@@ -458,7 +625,7 @@ function chooseAiAction(player, level){
   }
 
   if (availability.take2){
-    const color = aiPickTake2Color(player, plannedCard);
+    const color = aiPickTake2Color(player, plannedCard, visibleState);
     const projectedTokens = totalTokensOfPlayer(player) + 2;
     if (color !== null && color !== undefined){
       const overflow = projectedTokens > 10;
@@ -470,74 +637,59 @@ function chooseAiAction(player, level){
 
   const plans = [];
   decisions.forEach(decision => {
-    const planType = aiDetectPlanType(decision, ctx);
-    const plan = aiEvaluatePlan(decision, player, ctx, planType);
+    const planType = aiDetectPlanType(decision, ctx, profile);
+    const plan = aiEvaluatePlan(decision, player, ctx, planType, profile, visibleState);
     if (plan) plans.push(plan);
   });
 
-  if (plans.length < 2 && decisions.length > 1){
-    const second = decisions[1];
-    const planType = aiDetectPlanType(second, ctx);
-    const plan = aiEvaluatePlan(second, player, ctx, planType);
-    if (plan) plans.push(plan);
-  }
-
   if (!plans.length && (availability.take3 || availability.take2)){
-    // 如果因容量过滤导致没有计划，允许一次溢出拿取避免卡住
     decisions.forEach(decision => {
       if (!decision.planMeta) decision.planMeta = {};
       decision.planMeta.overflow = true;
-      const planType = aiDetectPlanType(decision, ctx);
-      const plan = aiEvaluatePlan(decision, player, ctx, planType);
+      const planType = aiDetectPlanType(decision, ctx, profile);
+      const plan = aiEvaluatePlan(decision, player, ctx, planType, profile, visibleState);
       if (plan) plans.push(plan);
     });
   }
 
-  if (blockOrLose){
-    const cautionPenalty = ctx.level >= 3 ? 8 : 15; // 软性偏好防守，但允许冒险
-    plans.forEach(p => {
-      if (p.planType === "economy" && p.opponentImpact === 0) p.planScore -= cautionPenalty;
-      if (p.planType === "develop" && p.opponentImpact === 0 && (p.selfGain || 0) <= 1) p.planScore -= cautionPenalty / 2;
-    });
-  }
-
-  const blockPlans = plans.filter(p => p && p.planType === "block");
-  const blockPlan = blockPlans
-    .sort((a, b) => (b.planScore || 0) - (a.planScore || 0))[0];
-
-  const strongestDelayPlan = plans
-    .filter(p => p && (p.opponentImpact > 0 || p.planType === "block"))
-    .sort((a, b) => (b.opponentImpact || 0) - (a.opponentImpact || 0) || (b.planScore || 0) - (a.planScore || 0))[0];
-
-  if (blockOrLose && blockPlan){
-    const commitBlock = Math.random() < (ctx.level >= 3 ? 0.75 : 0.9); // 高难度也会偶尔冒险不堵
-    if (commitBlock) return blockPlan.decision;
-  }
-
-  if (blockOrLose && strongestDelayPlan){
-    const commitDelay = Math.random() < (ctx.level >= 3 ? 0.8 : 0.92);
-    if (commitDelay) return strongestDelayPlan.decision;
-  }
-
-  if (blockOrLose && blockPlans.length){
-    const commitLightBlock = Math.random() < (ctx.level >= 3 ? 0.7 : 0.88);
-    if (commitLightBlock) return blockPlans[0].decision;
-  }
-
-  plans.sort((a, b) => (b.planScore || 0) - (a.planScore || 0));
-
-  const blunder = level >= 0 ? (AI_BLUNDER_RATE[level] ?? 0) : 0;
-  if (Math.random() < blunder){
-    return plans[Math.floor(Math.random() * plans.length)]?.decision || decisions[0];
-  }
-
   if (!plans.length){
-    // 保底：所有方案被降分/过滤后仍确保能行动
     const fallback = decisions.slice().sort((a, b) => (b.score || 0) - (a.score || 0))[0];
     return fallback || null;
   }
 
-  return plans[0]?.decision || decisions[0];
+  const bestSelf = plans.reduce((best, cur) => {
+    if (!best || cur.evaluation.selfProgressScore > best.evaluation.selfProgressScore) return cur;
+    return best;
+  }, null);
+
+  const allowedSacrifice = profile.strategyConstraints.allowedSacrificeLevel || 0;
+  const filteredPlans = plans.filter(plan => {
+    if (!bestSelf) return true;
+    const sacrifice = bestSelf.evaluation.selfProgressScore - plan.evaluation.selfProgressScore;
+    if (plan.planType === "block" && sacrifice / 40 > allowedSacrifice) return false;
+    return true;
+  });
+
+  const candidates = filteredPlans.length ? filteredPlans : plans;
+
+  if (blockOrLose){
+    candidates.sort((a, b) => {
+      const blockWeightA = a.planType === "block" ? 1 : 0;
+      const blockWeightB = b.planType === "block" ? 1 : 0;
+      if (blockWeightA !== blockWeightB) return blockWeightB - blockWeightA;
+      return (b.compositeScore || 0) - (a.compositeScore || 0);
+    });
+  } else {
+    candidates.sort((a, b) => (b.compositeScore || 0) - (a.compositeScore || 0));
+  }
+
+  const topScore = candidates[0]?.compositeScore;
+  const topPlans = candidates.filter(p => Math.abs((p.compositeScore || 0) - topScore) < 1e-6);
+  if (topPlans.length > 1){
+    return topPlans[Math.floor(Math.random() * topPlans.length)]?.decision || candidates[0].decision;
+  }
+
+  return candidates[0]?.decision || decisions[0];
 }
 
 function autoReturnTokensForAI(player){
