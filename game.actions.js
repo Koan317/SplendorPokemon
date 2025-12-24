@@ -1,4 +1,50 @@
 // ========== 7) 行动实现 ==========
+function willUseMasterBallAsWildcard(p, card){
+  if (!card?.cost) return false;
+  const need = [0,0,0,0,0,0];
+  for (const item of card.cost){
+    if (item.ball_color >= 0 && item.ball_color <= 5){
+      need[item.ball_color] += item.number;
+    }
+  }
+  const bonus = rewardBonusesOfPlayer(p);
+  const tokens = [...p.tokens];
+  let purpleBonus = bonus[Ball.master_ball];
+  let purpleTokens = tokens[Ball.master_ball];
+  let used = false;
+  for (let c=0;c<Ball.master_ball;c++){
+    let required = need[c];
+    required -= Math.min(bonus[c], required);
+    const useToken = Math.min(tokens[c], required);
+    tokens[c] -= useToken;
+    required -= useToken;
+    if (required > 0){
+      const usePurpleBonus = Math.min(purpleBonus, required);
+      purpleBonus -= usePurpleBonus;
+      required -= usePurpleBonus;
+      if (required > 0){
+        const usePurple = Math.min(purpleTokens, required);
+        if (usePurple > 0) used = true;
+        purpleTokens -= usePurple;
+      }
+    }
+  }
+  return used;
+}
+
+function willUseMasterBallForEvolution(p, card){
+  const evoCost = card?.evolution?.cost;
+  if (!evoCost || evoCost.ball_color === undefined || evoCost.ball_color === Ball.master_ball) return false;
+  let remaining = evoCost.number;
+  const bonus = rewardBonusesOfPlayer(p);
+  remaining -= Math.min(bonus[evoCost.ball_color], remaining);
+  remaining -= Math.min(p.tokens[evoCost.ball_color], remaining);
+  if (remaining <= 0) return false;
+  remaining -= Math.min(bonus[Ball.master_ball], remaining);
+  if (remaining <= 0) return false;
+  return Math.min(p.tokens[Ball.master_ball], remaining) > 0;
+}
+
 function actionTake3Different(){
   if (blockIfPrimaryActionLocked()) return Promise.resolve(false);
   const p = currentPlayer();
@@ -137,6 +183,7 @@ function actionReserve(){
 function actionBuy(){
   if (blockIfPrimaryActionLocked()) return Promise.resolve(false);
   const p = currentPlayer();
+  const isAi = getPlayerAiLevel(p, state.currentPlayerIndex) !== DISABLED_AI_LEVEL;
 
   // 优先：买保留牌
   if (ui.selectedReservedCard){
@@ -147,6 +194,9 @@ function actionBuy(){
 
     const card = p.reserved[rIdx];
     if (!canAfford(p, card)) return Promise.resolve(toast("精灵球标记不足，无法捕捉该卡", { type: "error" }));
+    if (!isAi && card.level < 4 && willUseMasterBallAsWildcard(p, card) && !window.confirm("是否确认消耗大师球？")){
+      return Promise.resolve(false);
+    }
 
     const reserveZone = findPlayerZone(state.currentPlayerIndex, ".reserve-zone");
     const startEl = reserveZone ? reserveZone.querySelector(`.mini-card[data-card-id="${card.id}"]`) : null;
@@ -175,6 +225,9 @@ function actionBuy(){
 
   const { level, idx, card } = found;
   if (!canAfford(p, card)) return Promise.resolve(toast("精灵球标记不足，无法捕捉该卡", { type: "error" }));
+  if (!isAi && level < 4 && willUseMasterBallAsWildcard(p, card) && !window.confirm("是否确认消耗大师球？")){
+    return Promise.resolve(false);
+  }
 
   const startEl = document.querySelector(`.market-card[data-card-id="${card.id}"]`);
   const handZone = findPlayerZone(state.currentPlayerIndex, ".hand-zone .zone-items");
@@ -228,6 +281,11 @@ function actionEvolve(){
 
   const baseCard = matchingBases.find(c => canAffordEvolution(p, c));
   if (!baseCard) return Promise.resolve(toast("精灵球标记不足，无法用该卡进行进化", { type: "error" }));
+
+  const isAi = getPlayerAiLevel(p, playerIndex) !== DISABLED_AI_LEVEL;
+  if (!isAi && willUseMasterBallForEvolution(p, baseCard) && !window.confirm("是否确认消耗大师球？")){
+    return Promise.resolve(false);
+  }
 
   payEvolutionCost(p, baseCard);
 
