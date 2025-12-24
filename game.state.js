@@ -11,6 +11,7 @@ let ui = {
   selectedReservedCard: null,     // {playerIndex, cardId}
   handPreviewPlayerIndex: null,
   errorMessage: "",
+  masterBallConfirm: null,        // { resolve }
   tokenReturn: null,              // { playerIndex, required, selected: number[6] }
   sessionTimerInterval: null,
 };

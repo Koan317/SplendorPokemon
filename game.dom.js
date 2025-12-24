@@ -39,6 +39,9 @@ const el = {
   tokenReturnInfo: $("#tokenReturnInfo"),
   tokenReturnList: $("#tokenReturnList"),
   btnConfirmTokenReturn: $("#btnConfirmTokenReturn"),
+  masterBallConfirmModal: $("#masterBallConfirmModal"),
+  btnConfirmMasterBall: $("#btnConfirmMasterBall"),
+  btnCancelMasterBall: $("#btnCancelMasterBall"),
 
   errorBanner: $("#errorBanner"),
 

@@ -184,8 +184,17 @@ function canAfford(p, card){
   return purplePool >= 0;
 }
 
-function payCost(p, card){
-  // 按 canAfford 假设可支付
+function planCardPayment(p, card){
+  const plan = {
+    affordable: false,
+    spend: [0,0,0,0,0,0],
+    usesMasterAsWildcard: false,
+    requiresMasterCost: false,
+    spendsMaster: false,
+  };
+
+  if (!card || !Array.isArray(card.cost) || !canAfford(p, card)) return plan;
+
   const need = [0,0,0,0,0,0];
   for (const item of card.cost){
     if (item.ball_color >= 0 && item.ball_color <= 5){
@@ -194,9 +203,9 @@ function payCost(p, card){
   }
 
   const bonus = rewardBonusesOfPlayer(p);
-  const spent = [0,0,0,0,0,0];
   let purpleBonus = bonus[5];
   let purpleTokens = p.tokens[5];
+  let affordable = true;
 
   for (let c=0;c<5;c++){
     let required = need[c];
@@ -204,8 +213,7 @@ function payCost(p, card){
     required -= useBonus;
 
     const useToken = Math.min(p.tokens[c], required);
-    p.tokens[c] -= useToken;
-    spent[c] += useToken;
+    plan.spend[c] += useToken;
     required -= useToken;
 
     if (required > 0){
@@ -215,9 +223,12 @@ function payCost(p, card){
 
       const usePurpleToken = Math.min(purpleTokens, required);
       purpleTokens -= usePurpleToken;
-      spent[5] += usePurpleToken;
+      plan.spend[5] += usePurpleToken;
       required -= usePurpleToken;
+      if (usePurpleToken > 0) plan.usesMasterAsWildcard = true;
     }
+
+    if (required > 0) affordable = false;
   }
 
   let purpleRequired = need[5];
@@ -228,16 +239,16 @@ function payCost(p, card){
   if (purpleRequired > 0){
     const usePurpleToken = Math.min(purpleTokens, purpleRequired);
     purpleTokens -= usePurpleToken;
-    spent[5] += usePurpleToken;
+    plan.spend[5] += usePurpleToken;
+    purpleRequired -= usePurpleToken;
   }
 
-  p.tokens[5] = purpleTokens;
+  if (purpleRequired > 0) affordable = false;
 
-  for (let i=0;i<spent.length;i++){
-    if (spent[i] > 0){
-      state.tokenPool[i] += spent[i];
-    }
-  }
+  plan.affordable = affordable;
+  plan.requiresMasterCost = need[5] > 0;
+  plan.spendsMaster = plan.spend[5] > 0;
+  return plan;
 }
 
 function canAffordEvolution(p, card){
@@ -266,12 +277,20 @@ function canAffordEvolution(p, card){
   return purplePool >= remaining;
 }
 
-function payEvolutionCost(p, card){
+function planEvolutionPayment(p, card){
+  const plan = {
+    affordable: false,
+    spend: [0,0,0,0,0,0],
+    usesMasterAsWildcard: false,
+    requiresMasterCost: false,
+    spendsMaster: false,
+  };
+
   const evoCost = card?.evolution?.cost;
-  if (!evoCost) return;
+  if (!evoCost || evoCost.ball_color === undefined || evoCost.number === undefined || !canAffordEvolution(p, card)) return plan;
   const color = evoCost.ball_color;
   let remaining = evoCost.number;
-  if (color < 0 || color >= p.tokens.length) return;
+  if (color < 0 || color >= p.tokens.length) return plan;
 
   const bonus = rewardBonusesOfPlayer(p);
 
@@ -280,8 +299,7 @@ function payEvolutionCost(p, card){
     remaining -= useBonus;
 
     const spendColor = Math.min(p.tokens[color], remaining);
-    p.tokens[color] -= spendColor;
-    state.tokenPool[color] += spendColor;
+    plan.spend[color] += spendColor;
     remaining -= spendColor;
   }
 
@@ -292,9 +310,60 @@ function payEvolutionCost(p, card){
 
   if (remaining > 0){
     const spendPurple = Math.min(p.tokens[Ball.master_ball], remaining);
-    p.tokens[Ball.master_ball] -= spendPurple;
-    state.tokenPool[Ball.master_ball] += spendPurple;
+    plan.spend[Ball.master_ball] += spendPurple;
+    remaining -= spendPurple;
+    if (color !== Ball.master_ball && spendPurple > 0) plan.usesMasterAsWildcard = true;
   }
+
+  plan.affordable = remaining <= 0;
+  plan.requiresMasterCost = color === Ball.master_ball;
+  plan.spendsMaster = plan.spend[Ball.master_ball] > 0;
+  return plan;
+}
+
+function applyPaymentPlan(p, spend){
+  if (!p || !Array.isArray(spend)) return;
+  spend.forEach((count, color) => {
+    if (count > 0){
+      p.tokens[color] -= count;
+      state.tokenPool[color] += count;
+    }
+  });
+}
+
+function payCost(p, card, plan = null){
+  const payment = plan || planCardPayment(p, card);
+  if (!payment?.affordable) return;
+  applyPaymentPlan(p, payment.spend);
+}
+
+function payEvolutionCost(p, card, plan = null){
+  const payment = plan || planEvolutionPayment(p, card);
+  if (!payment?.affordable) return;
+  applyPaymentPlan(p, payment.spend);
+}
+
+function shouldConfirmMasterBallSpend(player, playerIndex, paymentPlan, card, { skipForRareLegend = false } = {}){
+  if (!paymentPlan?.usesMasterAsWildcard) return false;
+  if (skipForRareLegend && card?.level >= 4) return false;
+  if (getPlayerAiLevel(player, playerIndex) >= 0) return false;
+  return true;
+}
+
+function promptMasterBallConfirm(){
+  if (!el.masterBallConfirmModal) return Promise.resolve(true);
+  return new Promise((resolve) => {
+    ui.masterBallConfirm = { resolve };
+    showModal(el.masterBallConfirmModal);
+  });
+}
+
+function resolveMasterBallConfirm(decision){
+  if (!ui.masterBallConfirm) return;
+  const { resolve } = ui.masterBallConfirm;
+  ui.masterBallConfirm = null;
+  closeModals();
+  resolve(!!decision);
 }
 
 function cleanStackData(card){
