@@ -137,6 +137,13 @@ function actionReserve(){
 function actionBuy(){
   if (blockIfPrimaryActionLocked()) return Promise.resolve(false);
   const p = currentPlayer();
+  const playerIndex = state.currentPlayerIndex;
+
+  const shouldConfirmMasterBall = (card) => {
+    if (!card) return false;
+    if (isAiPlayer(p, playerIndex)) return false;
+    return willUseMasterBallAsWildcard(p, card);
+  };
 
   // 优先：买保留牌
   if (ui.selectedReservedCard){
@@ -146,6 +153,10 @@ function actionBuy(){
     if (rIdx < 0) return Promise.resolve(toast("该卡不在你的保留区", { type: "error" }));
 
     const card = p.reserved[rIdx];
+    if (shouldConfirmMasterBall(card)){
+      const confirmUse = window.confirm("将消耗大师球作为万能球，是否确认？");
+      if (!confirmUse) return Promise.resolve(false);
+    }
     if (!canAfford(p, card)) return Promise.resolve(toast("精灵球标记不足，无法捕捉该卡", { type: "error" }));
 
     const reserveZone = findPlayerZone(state.currentPlayerIndex, ".reserve-zone");
@@ -174,6 +185,10 @@ function actionBuy(){
   if (!found) return Promise.resolve(toast("选择的卡不在展示区", { type: "error" }));
 
   const { level, idx, card } = found;
+  if (shouldConfirmMasterBall(card)){
+    const confirmUse = window.confirm("将消耗大师球作为万能球，是否确认？");
+    if (!confirmUse) return Promise.resolve(false);
+  }
   if (!canAfford(p, card)) return Promise.resolve(toast("精灵球标记不足，无法捕捉该卡", { type: "error" }));
 
   const startEl = document.querySelector(`.market-card[data-card-id="${card.id}"]`);
@@ -203,6 +218,11 @@ function actionEvolve(){
 
   const p = currentPlayer();
   const playerIndex = state.currentPlayerIndex;
+  const shouldConfirmMasterBall = (card) => {
+    if (!card) return false;
+    if (isAiPlayer(p, playerIndex)) return false;
+    return card.evolution?.cost?.ball_color !== Ball.master_ball && willUseMasterBallAsWildcard(p, card);
+  };
   const usingReserved = !!ui.selectedReservedCard;
   let marketCard, level, idx, reserveIndex;
   let startEl = null;
@@ -228,6 +248,11 @@ function actionEvolve(){
 
   const baseCard = matchingBases.find(c => canAffordEvolution(p, c));
   if (!baseCard) return Promise.resolve(toast("精灵球标记不足，无法用该卡进行进化", { type: "error" }));
+
+  if (shouldConfirmMasterBall(baseCard)){
+    const confirmUse = window.confirm("将消耗大师球作为万能球，是否确认？");
+    if (!confirmUse) return Promise.resolve(false);
+  }
 
   payEvolutionCost(p, baseCard);
 

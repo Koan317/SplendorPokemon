@@ -184,6 +184,46 @@ function canAfford(p, card){
   return purplePool >= 0;
 }
 
+function willUseMasterBallAsWildcard(p, card){
+  if (!p || !card || !Array.isArray(card.cost)) return false;
+
+  const need = [0,0,0,0,0,0];
+  for (const item of card.cost){
+    if (item.ball_color >= 0 && item.ball_color <= 5){
+      need[item.ball_color] += item.number;
+    }
+  }
+
+  const bonus = rewardBonusesOfPlayer(p);
+  const tokens = [...p.tokens];
+  let purpleTokens = tokens[Ball.master_ball];
+  let purpleBonus = bonus[Ball.master_ball];
+  let substituteTokens = 0;
+
+  for (let c=0; c<Ball.master_ball; c++){
+    let required = need[c];
+    const useBonus = Math.min(bonus[c], required);
+    required -= useBonus;
+
+    const useToken = Math.min(tokens[c], required);
+    required -= useToken;
+
+    if (required > 0){
+      const usePurpleBonus = Math.min(purpleBonus, required);
+      purpleBonus -= usePurpleBonus;
+      required -= usePurpleBonus;
+
+      if (required > 0){
+        const usePurpleToken = Math.min(purpleTokens, required);
+        purpleTokens -= usePurpleToken;
+        substituteTokens += usePurpleToken;
+      }
+    }
+  }
+
+  return substituteTokens > 0;
+}
+
 function payCost(p, card){
   // 按 canAfford 假设可支付
   const need = [0,0,0,0,0,0];

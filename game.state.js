@@ -70,6 +70,15 @@ function ensurePlayerHasAiLevel(player, index){
   player.aiLevel = getPlayerAiLevel(player, index);
 }
 
+function isHumanPlayer(player, index){
+  const resolvedIndex = Number.isInteger(index) ? index : state.players.indexOf(player);
+  return getPlayerAiLevel(player, resolvedIndex) < 0;
+}
+
+function isAiPlayer(player, index){
+  return !isHumanPlayer(player, index);
+}
+
 function getPrimaryActionLabel(key){
   return PRIMARY_ACTION_LABELS[key] || "主要行动";
 }
