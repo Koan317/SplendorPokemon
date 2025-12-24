@@ -630,6 +630,7 @@ body {
 .token-zone {
     height: auto;
     min-height: calc(var(--token-mini-size) * 2 + 10px);
+    --token-mini-size: 60px;
 }
 
 .zone-items {
@@ -747,8 +748,12 @@ body {
         top: -4px;
         right: -4px;
         transform: none;
-        padding: 2px 6px;
-        font-size: 11px;
+        padding: 3px 7px;
+        font-size: 13px;
+    }
+
+    .token-mini .reward-badge {
+        font-size: 12px;
     }
 
 .full-card {
