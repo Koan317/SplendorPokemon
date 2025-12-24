@@ -347,7 +347,8 @@ function shouldConfirmMasterBallForBuy(playerIndex, card){
   const p = state.players[playerIndex];
   if (!p) return false;
   const { spentTokens, masterAsWildcard } = simulatePayCost(p, card);
-  return masterAsWildcard && spentTokens[Ball.master_ball] > 0;
+  if (masterAsWildcard && spentTokens[Ball.master_ball] > 0) return true;
+  return spentTokens[Ball.master_ball] > 0 && needsMasterAsWildcardForCard(p, card);
 }
 
 function shouldConfirmMasterBallForEvolution(playerIndex, card){
@@ -359,7 +360,38 @@ function shouldConfirmMasterBallForEvolution(playerIndex, card){
   const p = state.players[playerIndex];
   if (!p) return false;
   const { spentTokens, masterAsWildcard } = simulatePayEvolutionCost(p, card);
-  return masterAsWildcard && spentTokens[Ball.master_ball] > 0;
+  if (masterAsWildcard && spentTokens[Ball.master_ball] > 0) return true;
+  return spentTokens[Ball.master_ball] > 0 && needsMasterAsWildcardForEvolution(p, card);
+}
+
+function needsMasterAsWildcardForCard(p, card){
+  const need = [0,0,0,0,0];
+  for (const item of card.cost || []){
+    if (item.ball_color >= 0 && item.ball_color <= 4){
+      need[item.ball_color] += item.number;
+    }
+  }
+  const bonus = rewardBonusesOfPlayer(p);
+  for (let c=0;c<5;c++){
+    let required = need[c];
+    required -= Math.min(bonus[c], required);
+    required -= Math.min(p.tokens[c], required);
+    if (required > 0) return true;
+  }
+  return false;
+}
+
+function needsMasterAsWildcardForEvolution(p, card){
+  const evoCost = card?.evolution?.cost;
+  if (!evoCost || evoCost.ball_color === undefined || evoCost.number === undefined) return false;
+  if (evoCost.ball_color === Ball.master_ball) return false;
+
+  const color = evoCost.ball_color;
+  const bonus = rewardBonusesOfPlayer(p);
+  let required = evoCost.number;
+  required -= Math.min(bonus[color], required);
+  required -= Math.min(p.tokens[color], required);
+  return required > 0;
 }
 
 function requestMasterBallConfirmation(playerIndex, proceed){
