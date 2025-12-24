@@ -58,10 +58,13 @@ if (el.btnCloseHandModal) el.btnCloseHandModal.addEventListener("click", closeMo
 if (el.btnCloseCardDetailModal) el.btnCloseCardDetailModal.addEventListener("click", closeModals);
 if (el.btnCloseAiInfo) el.btnCloseAiInfo.addEventListener("click", closeModals);
 if (el.btnConfirmTokenReturn) el.btnConfirmTokenReturn.addEventListener("click", confirmTokenReturn);
+if (el.btnConfirmMasterBall) el.btnConfirmMasterBall.addEventListener("click", () => resolveMasterBallConfirmation(true));
+if (el.btnCancelMasterBall) el.btnCancelMasterBall.addEventListener("click", () => resolveMasterBallConfirmation(false));
 
 const handleModalBlur = (event) => {
   if (!document.body.classList.contains("modal-open")) return;
   if (ui.tokenReturn) return;
+  if (ui.masterBallConfirm) return;
 
   const target = event.target;
   if (target === el.modalOverlay) {

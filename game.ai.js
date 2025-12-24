@@ -1343,6 +1343,7 @@ function groupCardsByReward(cards){
 
 function showModal(modal){
   if (ui.tokenReturn && modal !== el.tokenReturnModal) return;
+  if (ui.masterBallConfirm && modal !== el.confirmMasterBallModal) return;
   document.querySelectorAll(".modal").forEach(m => m.classList.add("hidden"));
   if (!modal) return;
   el.modalOverlay.classList.remove("hidden");
@@ -1352,7 +1353,14 @@ function showModal(modal){
 
 function closeModals({ force = false } = {}){
   if (ui.tokenReturn && !force) return;
-  if (force) ui.tokenReturn = null;
+  if (ui.masterBallConfirm && !force) return;
+  if (force){
+    ui.tokenReturn = null;
+    if (ui.masterBallConfirm){
+      ui.masterBallConfirm.resolve?.(false);
+      ui.masterBallConfirm = null;
+    }
+  }
   document.querySelectorAll(".modal").forEach(m => m.classList.add("hidden"));
   el.modalOverlay.classList.add("hidden");
   document.body.classList.remove("modal-open");

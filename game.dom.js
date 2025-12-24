@@ -40,6 +40,10 @@ const el = {
   tokenReturnList: $("#tokenReturnList"),
   btnConfirmTokenReturn: $("#btnConfirmTokenReturn"),
 
+  confirmMasterBallModal: $("#confirmMasterBallModal"),
+  btnConfirmMasterBall: $("#btnConfirmMasterBall"),
+  btnCancelMasterBall: $("#btnCancelMasterBall"),
+
   errorBanner: $("#errorBanner"),
 
   actTake3: $("#actTake3"),

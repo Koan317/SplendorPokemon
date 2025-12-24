@@ -12,6 +12,7 @@ let ui = {
   handPreviewPlayerIndex: null,
   errorMessage: "",
   tokenReturn: null,              // { playerIndex, required, selected: number[6] }
+  masterBallConfirm: null,        // { resolve: (confirmed:boolean)=>void }
   sessionTimerInterval: null,
 };
 

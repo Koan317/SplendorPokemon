@@ -134,25 +134,34 @@ function actionReserve(){
   });
 }
 
-function actionBuy(){
+async function actionBuy(){
   if (blockIfPrimaryActionLocked()) return Promise.resolve(false);
   const p = currentPlayer();
+  const playerIndex = state.currentPlayerIndex;
 
   // 优先：买保留牌
   if (ui.selectedReservedCard){
-    const { playerIndex, cardId } = ui.selectedReservedCard;
-    if (playerIndex !== state.currentPlayerIndex) return Promise.resolve(toast("只能捕捉自己保留区的卡", { type: "error" }));
+    const { playerIndex: reservedOwner, cardId } = ui.selectedReservedCard;
+    if (reservedOwner !== playerIndex) return Promise.resolve(toast("只能捕捉自己保留区的卡", { type: "error" }));
     const rIdx = p.reserved.findIndex(c => c.id === cardId);
     if (rIdx < 0) return Promise.resolve(toast("该卡不在你的保留区", { type: "error" }));
 
     const card = p.reserved[rIdx];
     if (!canAfford(p, card)) return Promise.resolve(toast("精灵球标记不足，无法捕捉该卡", { type: "error" }));
+    const payPlan = planCardPayment(p, card);
+    if (!payPlan) return Promise.resolve(toast("精灵球标记不足，无法捕捉该卡", { type: "error" }));
+
+    const confirmed = await ensureMasterBallConfirmation(payPlan, playerIndex);
+    if (!confirmed){
+      toast("已取消操作，未使用大师球");
+      return false;
+    }
 
     const reserveZone = findPlayerZone(state.currentPlayerIndex, ".reserve-zone");
     const startEl = reserveZone ? reserveZone.querySelector(`.mini-card[data-card-id="${card.id}"]`) : null;
     const handZone = findPlayerZone(state.currentPlayerIndex, ".hand-zone .zone-items");
 
-    payCost(p, card);
+    payCost(p, card, payPlan);
     p.reserved.splice(rIdx, 1);
     p.hand.push(card);
 
@@ -160,12 +169,11 @@ function actionBuy(){
 
     clearSelections();
 
-    return animateCardMove(startEl, handZone).then(() => {
-      renderAll();
-      toast("已捕捉保留区卡牌");
-      checkEndTrigger();
-      return true;
-    });
+    await animateCardMove(startEl, handZone);
+    renderAll();
+    toast("已捕捉保留区卡牌");
+    checkEndTrigger();
+    return true;
   }
 
   // 购买展示区卡
@@ -175,11 +183,19 @@ function actionBuy(){
 
   const { level, idx, card } = found;
   if (!canAfford(p, card)) return Promise.resolve(toast("精灵球标记不足，无法捕捉该卡", { type: "error" }));
+  const payPlan = planCardPayment(p, card);
+  if (!payPlan) return Promise.resolve(toast("精灵球标记不足，无法捕捉该卡", { type: "error" }));
+
+  const confirmed = await ensureMasterBallConfirmation(payPlan, playerIndex);
+  if (!confirmed){
+    toast("已取消操作，未使用大师球");
+    return false;
+  }
 
   const startEl = document.querySelector(`.market-card[data-card-id="${card.id}"]`);
   const handZone = findPlayerZone(state.currentPlayerIndex, ".hand-zone .zone-items");
 
-  payCost(p, card);
+  payCost(p, card, payPlan);
   p.hand.push(card);
 
   markPrimaryAction("buy");
@@ -189,16 +205,15 @@ function actionBuy(){
 
   clearSelections();
 
-  return animateCardMove(startEl, handZone).then(() => {
-    state.market.slotsByLevel[level][idx] = drawFromDeck(level);
-    renderAll();
-    toast("已捕捉展示区卡牌");
-    checkEndTrigger();
-    return true;
-  });
+  await animateCardMove(startEl, handZone);
+  state.market.slotsByLevel[level][idx] = drawFromDeck(level);
+  renderAll();
+  toast("已捕捉展示区卡牌");
+  checkEndTrigger();
+  return true;
 }
 
-function actionEvolve(){
+async function actionEvolve(){
   if (state.perTurn.evolved) return Promise.resolve(toast("本回合已完成一次进化", { type: "error" }));
 
   const p = currentPlayer();
@@ -228,8 +243,16 @@ function actionEvolve(){
 
   const baseCard = matchingBases.find(c => canAffordEvolution(p, c));
   if (!baseCard) return Promise.resolve(toast("精灵球标记不足，无法用该卡进行进化", { type: "error" }));
+  const payPlan = planEvolutionPayment(p, baseCard);
+  if (!payPlan) return Promise.resolve(toast("精灵球标记不足，无法用该卡进行进化", { type: "error" }));
 
-  payEvolutionCost(p, baseCard);
+  const confirmed = await ensureMasterBallConfirmation(payPlan, playerIndex);
+  if (!confirmed){
+    toast("已取消操作，未使用大师球");
+    return false;
+  }
+
+  payEvolutionCost(p, baseCard, payPlan);
 
   const handZone = findPlayerZone(state.currentPlayerIndex, ".hand-zone .zone-items");
 
@@ -245,14 +268,13 @@ function actionEvolve(){
   ui.selectedMarketCardId = null;
   ui.selectedReservedCard = null;
 
-  return animateCardMove(startEl, handZone).then(() => {
-    if (!usingReserved){
-      state.market.slotsByLevel[level][idx] = drawFromDeck(level);
-    }
-    renderAll();
-    toast(`${baseCard.name} 已进化为 ${marketCard.name}`);
-    return true;
-  });
+  await animateCardMove(startEl, handZone);
+  if (!usingReserved){
+    state.market.slotsByLevel[level][idx] = drawFromDeck(level);
+  }
+  renderAll();
+  toast(`${baseCard.name} 已进化为 ${marketCard.name}`);
+  return true;
 }
 
 function endTurn(){
