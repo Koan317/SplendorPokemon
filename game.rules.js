@@ -214,7 +214,7 @@ function calculateCardPayment(p, card){
   const tokens = [...p.tokens];
   let purpleBonus = bonus[5];
   let purpleTokens = tokens[5];
-  let masterAsWildcard = false;
+  let usedPurpleForColors = false;
 
   for (let c=0;c<5;c++){
     let required = need[c];
@@ -234,7 +234,7 @@ function calculateCardPayment(p, card){
       const usePurpleToken = Math.min(purpleTokens, required);
       purpleTokens -= usePurpleToken;
       spent[5] += usePurpleToken;
-      if (usePurpleToken > 0) masterAsWildcard = true;
+      if (usePurpleToken > 0) usedPurpleForColors = true;
       required -= usePurpleToken;
     }
   }
@@ -249,6 +249,8 @@ function calculateCardPayment(p, card){
     purpleTokens -= usePurpleToken;
     spent[5] += usePurpleToken;
   }
+
+  const masterAsWildcard = usedPurpleForColors;
 
   return { spentTokens: spent, masterAsWildcard };
 }
