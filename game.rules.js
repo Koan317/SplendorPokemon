@@ -186,61 +186,22 @@ function canAfford(p, card){
 
 function payCost(p, card){
   // 按 canAfford 假设可支付
-  const need = [0,0,0,0,0,0];
-  for (const item of card.cost){
-    if (item.ball_color >= 0 && item.ball_color <= 5){
-      need[item.ball_color] += item.number;
+  const { spentTokens } = calculateCardPayment(p, card);
+  if (!spentTokens) return;
+  spentTokens.forEach((count, color) => {
+    if (count > 0){
+      p.tokens[color] -= count;
+      state.tokenPool[color] += count;
     }
-  }
-
-  const bonus = rewardBonusesOfPlayer(p);
-  const spent = [0,0,0,0,0,0];
-  let purpleBonus = bonus[5];
-  let purpleTokens = p.tokens[5];
-
-  for (let c=0;c<5;c++){
-    let required = need[c];
-    const useBonus = Math.min(bonus[c], required);
-    required -= useBonus;
-
-    const useToken = Math.min(p.tokens[c], required);
-    p.tokens[c] -= useToken;
-    spent[c] += useToken;
-    required -= useToken;
-
-    if (required > 0){
-      const usePurpleBonus = Math.min(purpleBonus, required);
-      purpleBonus -= usePurpleBonus;
-      required -= usePurpleBonus;
-
-      const usePurpleToken = Math.min(purpleTokens, required);
-      purpleTokens -= usePurpleToken;
-      spent[5] += usePurpleToken;
-      required -= usePurpleToken;
-    }
-  }
-
-  let purpleRequired = need[5];
-  const usePurpleBonus = Math.min(purpleBonus, purpleRequired);
-  purpleBonus -= usePurpleBonus;
-  purpleRequired -= usePurpleBonus;
-
-  if (purpleRequired > 0){
-    const usePurpleToken = Math.min(purpleTokens, purpleRequired);
-    purpleTokens -= usePurpleToken;
-    spent[5] += usePurpleToken;
-  }
-
-  p.tokens[5] = purpleTokens;
-
-  for (let i=0;i<spent.length;i++){
-    if (spent[i] > 0){
-      state.tokenPool[i] += spent[i];
-    }
-  }
+  });
 }
 
 function simulatePayCost(p, card){
+  return calculateCardPayment(p, card);
+}
+
+function calculateCardPayment(p, card){
+  if (!card?.cost) return { spentTokens: [0,0,0,0,0,0], masterAsWildcard: false };
   const need = [0,0,0,0,0,0];
   for (const item of card.cost){
     if (item.ball_color >= 0 && item.ball_color <= 5){
@@ -250,8 +211,9 @@ function simulatePayCost(p, card){
 
   const bonus = rewardBonusesOfPlayer(p);
   const spent = [0,0,0,0,0,0];
+  const tokens = [...p.tokens];
   let purpleBonus = bonus[5];
-  let purpleTokens = p.tokens[5];
+  let purpleTokens = tokens[5];
   let masterAsWildcard = false;
 
   for (let c=0;c<5;c++){
@@ -259,9 +221,10 @@ function simulatePayCost(p, card){
     const useBonus = Math.min(bonus[c], required);
     required -= useBonus;
 
-    const useToken = Math.min(p.tokens[c], required);
-    required -= useToken;
+    const useToken = Math.min(tokens[c], required);
+    tokens[c] -= useToken;
     spent[c] += useToken;
+    required -= useToken;
 
     if (required > 0){
       const usePurpleBonus = Math.min(purpleBonus, required);
@@ -317,50 +280,36 @@ function canAffordEvolution(p, card){
 }
 
 function payEvolutionCost(p, card){
-  const evoCost = card?.evolution?.cost;
-  if (!evoCost) return;
-  const color = evoCost.ball_color;
-  let remaining = evoCost.number;
-  if (color < 0 || color >= p.tokens.length) return;
-
-  const bonus = rewardBonusesOfPlayer(p);
-
-  if (color !== Ball.master_ball){
-    const useBonus = Math.min(bonus[color], remaining);
-    remaining -= useBonus;
-
-    const spendColor = Math.min(p.tokens[color], remaining);
-    p.tokens[color] -= spendColor;
-    state.tokenPool[color] += spendColor;
-    remaining -= spendColor;
-  }
-
-  if (remaining > 0){
-    const spendPurpleBonus = Math.min(bonus[Ball.master_ball], remaining);
-    remaining -= spendPurpleBonus;
-  }
-
-  if (remaining > 0){
-    const spendPurple = Math.min(p.tokens[Ball.master_ball], remaining);
-    p.tokens[Ball.master_ball] -= spendPurple;
-    state.tokenPool[Ball.master_ball] += spendPurple;
-  }
+  const { spentTokens } = calculateEvolutionPayment(p, card);
+  if (!spentTokens) return;
+  spentTokens.forEach((count, color) => {
+    if (count > 0){
+      p.tokens[color] -= count;
+      state.tokenPool[color] += count;
+    }
+  });
 }
 
 function simulatePayEvolutionCost(p, card){
+  return calculateEvolutionPayment(p, card);
+}
+
+function calculateEvolutionPayment(p, card){
   const evoCost = card?.evolution?.cost;
   if (!evoCost) return { spentTokens: [0,0,0,0,0,0], masterAsWildcard: false };
   const color = evoCost.ball_color;
   let remaining = evoCost.number;
   const bonus = rewardBonusesOfPlayer(p);
   const spent = [0,0,0,0,0,0];
+  const tokens = [...p.tokens];
   let masterAsWildcard = false;
 
   if (color !== Ball.master_ball){
     const useBonus = Math.min(bonus[color], remaining);
     remaining -= useBonus;
 
-    const spendColor = Math.min(p.tokens[color], remaining);
+    const spendColor = Math.min(tokens[color], remaining);
+    tokens[color] -= spendColor;
     spent[color] += spendColor;
     remaining -= spendColor;
   }
@@ -371,7 +320,8 @@ function simulatePayEvolutionCost(p, card){
   }
 
   if (remaining > 0){
-    const spendPurple = Math.min(p.tokens[Ball.master_ball], remaining);
+    const spendPurple = Math.min(tokens[Ball.master_ball], remaining);
+    tokens[Ball.master_ball] -= spendPurple;
     spent[Ball.master_ball] += spendPurple;
     if (color !== Ball.master_ball && spendPurple > 0) masterAsWildcard = true;
   }
