@@ -147,12 +147,18 @@ function actionBuy(){
 
     const card = p.reserved[rIdx];
     if (!canAfford(p, card)) return Promise.resolve(toast("精灵球标记不足，无法捕捉该卡", { type: "error" }));
+    const paymentPlan = planCostPayment(p, card);
+    if (!paymentPlan?.affordable) return Promise.resolve(toast("精灵球标记不足，无法捕捉该卡", { type: "error" }));
+    if (shouldConfirmMasterBall(p, paymentPlan)){
+      const confirmed = window.confirm("是否确定使用大师球？");
+      if (!confirmed) return Promise.resolve(toast("已取消使用大师球操作", { type: "info" }));
+    }
 
     const reserveZone = findPlayerZone(state.currentPlayerIndex, ".reserve-zone");
     const startEl = reserveZone ? reserveZone.querySelector(`.mini-card[data-card-id="${card.id}"]`) : null;
     const handZone = findPlayerZone(state.currentPlayerIndex, ".hand-zone .zone-items");
 
-    payCost(p, card);
+    payCost(p, card, paymentPlan);
     p.reserved.splice(rIdx, 1);
     p.hand.push(card);
 
@@ -175,11 +181,17 @@ function actionBuy(){
 
   const { level, idx, card } = found;
   if (!canAfford(p, card)) return Promise.resolve(toast("精灵球标记不足，无法捕捉该卡", { type: "error" }));
+  const paymentPlan = planCostPayment(p, card);
+  if (!paymentPlan?.affordable) return Promise.resolve(toast("精灵球标记不足，无法捕捉该卡", { type: "error" }));
+  if (shouldConfirmMasterBall(p, paymentPlan)){
+    const confirmed = window.confirm("是否确定使用大师球？");
+    if (!confirmed) return Promise.resolve(toast("已取消使用大师球操作", { type: "info" }));
+  }
 
   const startEl = document.querySelector(`.market-card[data-card-id="${card.id}"]`);
   const handZone = findPlayerZone(state.currentPlayerIndex, ".hand-zone .zone-items");
 
-  payCost(p, card);
+  payCost(p, card, paymentPlan);
   p.hand.push(card);
 
   markPrimaryAction("buy");
@@ -228,8 +240,14 @@ function actionEvolve(){
 
   const baseCard = matchingBases.find(c => canAffordEvolution(p, c));
   if (!baseCard) return Promise.resolve(toast("精灵球标记不足，无法用该卡进行进化", { type: "error" }));
+  const evoPaymentPlan = planEvolutionPayment(p, baseCard);
+  if (!evoPaymentPlan?.affordable) return Promise.resolve(toast("精灵球标记不足，无法用该卡进行进化", { type: "error" }));
+  if (shouldConfirmMasterBall(p, evoPaymentPlan)){
+    const confirmed = window.confirm("是否确定使用大师球？");
+    if (!confirmed) return Promise.resolve(toast("已取消使用大师球操作", { type: "info" }));
+  }
 
-  payEvolutionCost(p, baseCard);
+  payEvolutionCost(p, baseCard, evoPaymentPlan);
 
   const handZone = findPlayerZone(state.currentPlayerIndex, ".hand-zone .zone-items");
 
