@@ -184,6 +184,57 @@ function canAfford(p, card){
   return purplePool >= 0;
 }
 
+function wouldSpendMasterBallAsWildcard(player, costItems){
+  if (!player || !costItems) return false;
+  const need = [0,0,0,0,0,0];
+  const costs = Array.isArray(costItems) ? costItems : [costItems];
+  costs.forEach(item => {
+    if (!item) return;
+    const color = Number(item.ball_color);
+    const number = Number(item.number);
+    if (!Number.isInteger(color) || color < 0 || color >= need.length) return;
+    need[color] += Number.isFinite(number) ? number : 0;
+  });
+
+  const bonus = rewardBonusesOfPlayer(player);
+  const tokens = [...player.tokens];
+  let purpleBonus = bonus[Ball.master_ball];
+  let purpleTokens = tokens[Ball.master_ball];
+  let wildcardUsed = false;
+
+  for (let c=0;c<Ball.master_ball;c++){
+    let required = need[c];
+    const useBonus = Math.min(bonus[c], required);
+    required -= useBonus;
+
+    const useToken = Math.min(tokens[c], required);
+    tokens[c] -= useToken;
+    required -= useToken;
+
+    if (required > 0){
+      const usePurpleBonus = Math.min(purpleBonus, required);
+      purpleBonus -= usePurpleBonus;
+      required -= usePurpleBonus;
+
+      if (required > 0){
+        const usePurpleToken = Math.min(purpleTokens, required);
+        if (usePurpleToken > 0) wildcardUsed = true;
+        purpleTokens -= usePurpleToken;
+      }
+    }
+  }
+
+  let masterNeed = need[Ball.master_ball];
+  const useMasterBonus = Math.min(purpleBonus, masterNeed);
+  masterNeed -= useMasterBonus;
+  if (masterNeed > 0){
+    const useMasterToken = Math.min(purpleTokens, masterNeed);
+    purpleTokens -= useMasterToken;
+  }
+
+  return wildcardUsed;
+}
+
 function payCost(p, card){
   // 按 canAfford 假设可支付
   const need = [0,0,0,0,0,0];
