@@ -45,4 +45,4 @@ const AI_LEVEL_OPTIONS = [
   { value: 3, label: "进阶" },
   { value: 4, label: "大师" },
 ];
-const AI_DELAY_MS = 420;
+const AI_DELAY_MS = 320;
