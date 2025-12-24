@@ -148,6 +148,11 @@ function actionBuy(){
     const card = p.reserved[rIdx];
     if (!canAfford(p, card)) return Promise.resolve(toast("精灵球标记不足，无法捕捉该卡", { type: "error" }));
 
+    if (shouldConfirmMasterBallSpend(state.currentPlayerIndex, card.cost)){
+      const confirmed = window.confirm("确认消耗大师球来代替其他颜色的精灵球吗？");
+      if (!confirmed) return Promise.resolve(toast("已取消消耗大师球"));
+    }
+
     const reserveZone = findPlayerZone(state.currentPlayerIndex, ".reserve-zone");
     const startEl = reserveZone ? reserveZone.querySelector(`.mini-card[data-card-id="${card.id}"]`) : null;
     const handZone = findPlayerZone(state.currentPlayerIndex, ".hand-zone .zone-items");
@@ -175,6 +180,11 @@ function actionBuy(){
 
   const { level, idx, card } = found;
   if (!canAfford(p, card)) return Promise.resolve(toast("精灵球标记不足，无法捕捉该卡", { type: "error" }));
+
+  if (shouldConfirmMasterBallSpend(state.currentPlayerIndex, card.cost)){
+    const confirmed = window.confirm("确认消耗大师球来代替其他颜色的精灵球吗？");
+    if (!confirmed) return Promise.resolve(toast("已取消消耗大师球"));
+  }
 
   const startEl = document.querySelector(`.market-card[data-card-id="${card.id}"]`);
   const handZone = findPlayerZone(state.currentPlayerIndex, ".hand-zone .zone-items");
@@ -228,6 +238,11 @@ function actionEvolve(){
 
   const baseCard = matchingBases.find(c => canAffordEvolution(p, c));
   if (!baseCard) return Promise.resolve(toast("精灵球标记不足，无法用该卡进行进化", { type: "error" }));
+
+  if (shouldConfirmMasterBallSpend(playerIndex, baseCard?.evolution?.cost)){
+    const confirmed = window.confirm("确认消耗大师球来代替其他颜色的精灵球吗？");
+    if (!confirmed) return Promise.resolve(toast("已取消消耗大师球"));
+  }
 
   payEvolutionCost(p, baseCard);
 

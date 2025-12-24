@@ -5,6 +5,11 @@ function totalTokensOfPlayer(p){
   return p.tokens.reduce((a,b)=>a+b,0);
 }
 
+function isAiPlayer(playerIndex){
+  const player = state.players?.[playerIndex];
+  return getPlayerAiLevel(player, playerIndex) !== DISABLED_AI_LEVEL;
+}
+
 function rewardBonusesOfPlayer(p){
   const bonus = [0,0,0,0,0,0];
   p.hand.forEach(card => {
@@ -182,6 +187,53 @@ function canAfford(p, card){
   purplePool -= purpleCost;
 
   return purplePool >= 0;
+}
+
+function willSpendMasterAsWildcard(p, costItems){
+  if (!Array.isArray(costItems)) return false;
+  const need = [0,0,0,0,0,0];
+  for (const item of costItems){
+    if (item.ball_color >= 0 && item.ball_color <= 5){
+      need[item.ball_color] += item.number;
+    }
+  }
+
+  if (need[Ball.master_ball] > 0) return false;
+
+  const bonus = rewardBonusesOfPlayer(p);
+  let purpleBonus = bonus[Ball.master_ball];
+  let purpleTokens = p.tokens[Ball.master_ball];
+
+  for (let c=0;c<5;c++){
+    let required = need[c];
+    const useBonus = Math.min(bonus[c], required);
+    required -= useBonus;
+
+    const useToken = Math.min(p.tokens[c], required);
+    required -= useToken;
+
+    if (required > 0){
+      const usePurpleBonus = Math.min(purpleBonus, required);
+      purpleBonus -= usePurpleBonus;
+      required -= usePurpleBonus;
+
+      const usePurpleToken = Math.min(purpleTokens, required);
+      purpleTokens -= usePurpleToken;
+      if (usePurpleToken > 0) return true;
+    }
+  }
+
+  return false;
+}
+
+function shouldConfirmMasterBallSpend(playerIndex, costItems){
+  if (isAiPlayer(playerIndex)) return false;
+  if (!costItems) return false;
+
+  const player = state.players?.[playerIndex];
+  if (!player) return false;
+
+  return willSpendMasterAsWildcard(player, costItems);
 }
 
 function payCost(p, card){
