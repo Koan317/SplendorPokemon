@@ -184,8 +184,9 @@ function canAfford(p, card){
   return purplePool >= 0;
 }
 
-function payCost(p, card){
-  // 按 canAfford 假设可支付
+function planCardCostPayment(p, card){
+  if (!p || !card) return null;
+  const masterIdx = Ball.master_ball;
   const need = [0,0,0,0,0,0];
   for (const item of card.cost){
     if (item.ball_color >= 0 && item.ball_color <= 5){
@@ -195,8 +196,10 @@ function payCost(p, card){
 
   const bonus = rewardBonusesOfPlayer(p);
   const spent = [0,0,0,0,0,0];
-  let purpleBonus = bonus[5];
-  let purpleTokens = p.tokens[5];
+  let purpleBonus = bonus[masterIdx];
+  let purpleTokens = p.tokens[masterIdx];
+  let masterAsWildcard = 0;
+  let masterForOwnColor = 0;
 
   for (let c=0;c<5;c++){
     let required = need[c];
@@ -204,7 +207,6 @@ function payCost(p, card){
     required -= useBonus;
 
     const useToken = Math.min(p.tokens[c], required);
-    p.tokens[c] -= useToken;
     spent[c] += useToken;
     required -= useToken;
 
@@ -215,12 +217,13 @@ function payCost(p, card){
 
       const usePurpleToken = Math.min(purpleTokens, required);
       purpleTokens -= usePurpleToken;
-      spent[5] += usePurpleToken;
+      spent[masterIdx] += usePurpleToken;
+      masterAsWildcard += usePurpleToken;
       required -= usePurpleToken;
     }
   }
 
-  let purpleRequired = need[5];
+  let purpleRequired = need[masterIdx];
   const usePurpleBonus = Math.min(purpleBonus, purpleRequired);
   purpleBonus -= usePurpleBonus;
   purpleRequired -= usePurpleBonus;
@@ -228,13 +231,31 @@ function payCost(p, card){
   if (purpleRequired > 0){
     const usePurpleToken = Math.min(purpleTokens, purpleRequired);
     purpleTokens -= usePurpleToken;
-    spent[5] += usePurpleToken;
+    spent[masterIdx] += usePurpleToken;
+    masterForOwnColor += usePurpleToken;
   }
 
-  p.tokens[5] = purpleTokens;
+  return {
+    spent,
+    masterAsWildcard,
+    masterForOwnColor,
+  };
+}
+
+function shouldConfirmMasterBallSubstitution(player, plan){
+  if (!plan) return false;
+  return isHumanPlayer(player) && plan.masterAsWildcard > 0;
+}
+
+function payCost(p, card, plan = null){
+  // 按 canAfford 假设可支付
+  const paymentPlan = plan || planCardCostPayment(p, card);
+  if (!paymentPlan) return;
+  const spent = paymentPlan.spent || [];
 
   for (let i=0;i<spent.length;i++){
     if (spent[i] > 0){
+      p.tokens[i] -= spent[i];
       state.tokenPool[i] += spent[i];
     }
   }
@@ -266,22 +287,24 @@ function canAffordEvolution(p, card){
   return purplePool >= remaining;
 }
 
-function payEvolutionCost(p, card){
+function planEvolutionCostPayment(p, card){
   const evoCost = card?.evolution?.cost;
-  if (!evoCost) return;
+  if (!evoCost) return null;
   const color = evoCost.ball_color;
   let remaining = evoCost.number;
-  if (color < 0 || color >= p.tokens.length) return;
+  if (color < 0 || color >= p.tokens.length) return null;
 
   const bonus = rewardBonusesOfPlayer(p);
+  const spent = [0,0,0,0,0,0];
+  let masterAsWildcard = 0;
+  let masterForOwnColor = 0;
 
   if (color !== Ball.master_ball){
     const useBonus = Math.min(bonus[color], remaining);
     remaining -= useBonus;
 
     const spendColor = Math.min(p.tokens[color], remaining);
-    p.tokens[color] -= spendColor;
-    state.tokenPool[color] += spendColor;
+    spent[color] += spendColor;
     remaining -= spendColor;
   }
 
@@ -292,8 +315,30 @@ function payEvolutionCost(p, card){
 
   if (remaining > 0){
     const spendPurple = Math.min(p.tokens[Ball.master_ball], remaining);
-    p.tokens[Ball.master_ball] -= spendPurple;
-    state.tokenPool[Ball.master_ball] += spendPurple;
+    spent[Ball.master_ball] += spendPurple;
+    if (color === Ball.master_ball){
+      masterForOwnColor += spendPurple;
+    } else {
+      masterAsWildcard += spendPurple;
+    }
+  }
+
+  return {
+    spent,
+    masterAsWildcard,
+    masterForOwnColor,
+  };
+}
+
+function payEvolutionCost(p, card, plan = null){
+  const paymentPlan = plan || planEvolutionCostPayment(p, card);
+  if (!paymentPlan) return;
+  const spent = paymentPlan.spent || [];
+  for (let i=0;i<spent.length;i++){
+    if (spent[i] > 0){
+      p.tokens[i] -= spent[i];
+      state.tokenPool[i] += spent[i];
+    }
   }
 }
 

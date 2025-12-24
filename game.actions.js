@@ -1,4 +1,9 @@
 // ========== 7) 行动实现 ==========
+function confirmMasterBallUsage(player, plan){
+  if (!shouldConfirmMasterBallSubstitution(player, plan)) return true;
+  return window.confirm("你将使用大师球代替其他颜色的精灵球标记，确定要消耗吗？");
+}
+
 function actionTake3Different(){
   if (blockIfPrimaryActionLocked()) return Promise.resolve(false);
   const p = currentPlayer();
@@ -152,7 +157,10 @@ function actionBuy(){
     const startEl = reserveZone ? reserveZone.querySelector(`.mini-card[data-card-id="${card.id}"]`) : null;
     const handZone = findPlayerZone(state.currentPlayerIndex, ".hand-zone .zone-items");
 
-    payCost(p, card);
+    const paymentPlan = planCardCostPayment(p, card);
+    if (!confirmMasterBallUsage(p, paymentPlan)) return Promise.resolve(false);
+
+    payCost(p, card, paymentPlan);
     p.reserved.splice(rIdx, 1);
     p.hand.push(card);
 
@@ -179,7 +187,10 @@ function actionBuy(){
   const startEl = document.querySelector(`.market-card[data-card-id="${card.id}"]`);
   const handZone = findPlayerZone(state.currentPlayerIndex, ".hand-zone .zone-items");
 
-  payCost(p, card);
+  const paymentPlan = planCardCostPayment(p, card);
+  if (!confirmMasterBallUsage(p, paymentPlan)) return Promise.resolve(false);
+
+  payCost(p, card, paymentPlan);
   p.hand.push(card);
 
   markPrimaryAction("buy");
@@ -229,7 +240,10 @@ function actionEvolve(){
   const baseCard = matchingBases.find(c => canAffordEvolution(p, c));
   if (!baseCard) return Promise.resolve(toast("精灵球标记不足，无法用该卡进行进化", { type: "error" }));
 
-  payEvolutionCost(p, baseCard);
+  const evolutionPlan = planEvolutionCostPayment(p, baseCard);
+  if (!confirmMasterBallUsage(p, evolutionPlan)) return Promise.resolve(false);
+
+  payEvolutionCost(p, baseCard, evolutionPlan);
 
   const handZone = findPlayerZone(state.currentPlayerIndex, ".hand-zone .zone-items");
 
