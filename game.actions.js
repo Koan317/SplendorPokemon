@@ -134,25 +134,39 @@ function actionReserve(){
   });
 }
 
+function shouldConfirmMasterBallUsage(player, playerIndex, card, paymentPlan){
+  if (!player || !card || !paymentPlan) return false;
+  const isHuman = getPlayerAiLevel(player, playerIndex) < 0;
+  const cardLevel = Number(card.level) || 0;
+  const isNormalLevel = cardLevel >= 1 && cardLevel <= 3;
+  return isHuman && isNormalLevel && paymentPlan.usedMasterAsWildcard;
+}
+
 function actionBuy(){
   if (blockIfPrimaryActionLocked()) return Promise.resolve(false);
   const p = currentPlayer();
+  const playerIndex = state.currentPlayerIndex;
 
   // 优先：买保留牌
   if (ui.selectedReservedCard){
-    const { playerIndex, cardId } = ui.selectedReservedCard;
-    if (playerIndex !== state.currentPlayerIndex) return Promise.resolve(toast("只能捕捉自己保留区的卡", { type: "error" }));
+    const { playerIndex: selectedPlayerIndex, cardId } = ui.selectedReservedCard;
+    if (selectedPlayerIndex !== state.currentPlayerIndex) return Promise.resolve(toast("只能捕捉自己保留区的卡", { type: "error" }));
     const rIdx = p.reserved.findIndex(c => c.id === cardId);
     if (rIdx < 0) return Promise.resolve(toast("该卡不在你的保留区", { type: "error" }));
 
     const card = p.reserved[rIdx];
-    if (!canAfford(p, card)) return Promise.resolve(toast("精灵球标记不足，无法捕捉该卡", { type: "error" }));
+    const paymentPlan = calculateCostPaymentPlan(p, card);
+    if (!paymentPlan) return Promise.resolve(toast("精灵球标记不足，无法捕捉该卡", { type: "error" }));
+
+    if (shouldConfirmMasterBallUsage(p, playerIndex, card, paymentPlan) && !window.confirm("是否确定使用大师球？")){
+      return Promise.resolve(false);
+    }
 
     const reserveZone = findPlayerZone(state.currentPlayerIndex, ".reserve-zone");
     const startEl = reserveZone ? reserveZone.querySelector(`.mini-card[data-card-id="${card.id}"]`) : null;
     const handZone = findPlayerZone(state.currentPlayerIndex, ".hand-zone .zone-items");
 
-    payCost(p, card);
+    payCost(p, card, paymentPlan);
     p.reserved.splice(rIdx, 1);
     p.hand.push(card);
 
@@ -174,12 +188,17 @@ function actionBuy(){
   if (!found) return Promise.resolve(toast("选择的卡不在展示区", { type: "error" }));
 
   const { level, idx, card } = found;
-  if (!canAfford(p, card)) return Promise.resolve(toast("精灵球标记不足，无法捕捉该卡", { type: "error" }));
+  const paymentPlan = calculateCostPaymentPlan(p, card);
+  if (!paymentPlan) return Promise.resolve(toast("精灵球标记不足，无法捕捉该卡", { type: "error" }));
+
+  if (shouldConfirmMasterBallUsage(p, playerIndex, card, paymentPlan) && !window.confirm("是否确定使用大师球？")){
+    return Promise.resolve(false);
+  }
 
   const startEl = document.querySelector(`.market-card[data-card-id="${card.id}"]`);
   const handZone = findPlayerZone(state.currentPlayerIndex, ".hand-zone .zone-items");
 
-  payCost(p, card);
+  payCost(p, card, paymentPlan);
   p.hand.push(card);
 
   markPrimaryAction("buy");
@@ -226,10 +245,23 @@ function actionEvolve(){
   const matchingBases = p.hand.filter(c => c?.evolution?.name === marketCard.name);
   if (!matchingBases.length) return Promise.resolve(toast("该卡牌无法进化你的任何手牌", { type: "error" }));
 
-  const baseCard = matchingBases.find(c => canAffordEvolution(p, c));
+  let baseCard = null;
+  let evolutionPlan = null;
+  for (const candidate of matchingBases){
+    const plan = calculateEvolutionPaymentPlan(p, candidate);
+    if (plan){
+      baseCard = candidate;
+      evolutionPlan = plan;
+      break;
+    }
+  }
   if (!baseCard) return Promise.resolve(toast("精灵球标记不足，无法用该卡进行进化", { type: "error" }));
 
-  payEvolutionCost(p, baseCard);
+  if (shouldConfirmMasterBallUsage(p, playerIndex, marketCard, evolutionPlan) && !window.confirm("是否确定使用大师球？")){
+    return Promise.resolve(false);
+  }
+
+  payEvolutionCost(p, baseCard, evolutionPlan);
 
   const handZone = findPlayerZone(state.currentPlayerIndex, ".hand-zone .zone-items");
 
