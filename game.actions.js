@@ -253,29 +253,44 @@ function actionEvolve(){
   const baseCard = matchingBases.find(c => canAffordEvolution(p, c));
   if (!baseCard) return Promise.resolve(toast("精灵球标记不足，无法用该卡进行进化", { type: "error" }));
 
-  payEvolutionCost(p, baseCard);
+  const evoPlan = calculateEvolutionPayment(p, baseCard);
+  const shouldConfirm = () => {
+    if (!evoPlan?.usedMasterAsWildcard) return false;
+    if (!baseCard || Number(baseCard.level) >= 4) return false;
+    const player = state.players[playerIndex];
+    if (!player) return false;
+    return getPlayerAiLevel(player, playerIndex) === DISABLED_AI_LEVEL;
+  };
 
-  const handZone = findPlayerZone(state.currentPlayerIndex, ".hand-zone .zone-items");
+  const confirmPromise = shouldConfirm() ? Promise.resolve(window.confirm("是否确定使用大师球？")) : Promise.resolve(true);
 
-  if (usingReserved){
-    p.reserved.splice(reserveIndex, 1);
-  } else {
-    state.market.slotsByLevel[level][idx] = null;
-  }
+  return confirmPromise.then(confirmed => {
+    if (!confirmed) return false;
 
-  const evolved = replaceWithEvolution(p, baseCard, marketCard);
+    payEvolutionCost(p, baseCard, evoPlan);
 
-  state.perTurn.evolved = true;
-  ui.selectedMarketCardId = null;
-  ui.selectedReservedCard = null;
+    const handZone = findPlayerZone(state.currentPlayerIndex, ".hand-zone .zone-items");
 
-  return animateCardMove(startEl, handZone).then(() => {
-    if (!usingReserved){
-      state.market.slotsByLevel[level][idx] = drawFromDeck(level);
+    if (usingReserved){
+      p.reserved.splice(reserveIndex, 1);
+    } else {
+      state.market.slotsByLevel[level][idx] = null;
     }
-    renderAll();
-    toast(`${baseCard.name} 已进化为 ${marketCard.name}`);
-    return true;
+
+    replaceWithEvolution(p, baseCard, marketCard);
+
+    state.perTurn.evolved = true;
+    ui.selectedMarketCardId = null;
+    ui.selectedReservedCard = null;
+
+    return animateCardMove(startEl, handZone).then(() => {
+      if (!usingReserved){
+        state.market.slotsByLevel[level][idx] = drawFromDeck(level);
+      }
+      renderAll();
+      toast(`${baseCard.name} 已进化为 ${marketCard.name}`);
+      return true;
+    });
   });
 }
 
