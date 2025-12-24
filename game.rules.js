@@ -150,7 +150,9 @@ function confirmTokenReturn(){
   toast(`已归还 ${selectedTotal} 个精灵球标记`);
 }
 
-function canAfford(p, card){
+function calculatePaymentPlan(p, card){
+  if (!p || !card) return null;
+
   // 紫色大师球可当万能：支付时先用对应色，不够再用紫；奖励视为永久折扣
   const need = [0,0,0,0,0,0];
   for (const item of card.cost){
@@ -161,83 +163,74 @@ function canAfford(p, card){
 
   const bonus = rewardBonusesOfPlayer(p);
   const tokens = [...p.tokens];
-  let purplePool = tokens[5] + bonus[5];
+  const plan = {
+    spendTokens: [0,0,0,0,0,0],
+    spendBonuses: [0,0,0,0,0,0],
+    usedMasterAsWildcard: false,
+  };
+
+  let purpleBonus = bonus[Ball.master_ball];
+  let purpleTokens = tokens[Ball.master_ball];
 
   for (let c=0;c<5;c++){
     let required = need[c];
     const useBonus = Math.min(bonus[c], required);
+    plan.spendBonuses[c] += useBonus;
     required -= useBonus;
 
     const useToken = Math.min(tokens[c], required);
     tokens[c] -= useToken;
-    required -= useToken;
-
-    if (required > 0){
-      purplePool -= required;
-      if (purplePool < 0) return false;
-    }
-  }
-
-  const purpleCost = need[5];
-  purplePool -= purpleCost;
-
-  return purplePool >= 0;
-}
-
-function payCost(p, card){
-  // 按 canAfford 假设可支付
-  const need = [0,0,0,0,0,0];
-  for (const item of card.cost){
-    if (item.ball_color >= 0 && item.ball_color <= 5){
-      need[item.ball_color] += item.number;
-    }
-  }
-
-  const bonus = rewardBonusesOfPlayer(p);
-  const spent = [0,0,0,0,0,0];
-  let purpleBonus = bonus[5];
-  let purpleTokens = p.tokens[5];
-
-  for (let c=0;c<5;c++){
-    let required = need[c];
-    const useBonus = Math.min(bonus[c], required);
-    required -= useBonus;
-
-    const useToken = Math.min(p.tokens[c], required);
-    p.tokens[c] -= useToken;
-    spent[c] += useToken;
+    plan.spendTokens[c] += useToken;
     required -= useToken;
 
     if (required > 0){
       const usePurpleBonus = Math.min(purpleBonus, required);
+      plan.spendBonuses[Ball.master_ball] += usePurpleBonus;
       purpleBonus -= usePurpleBonus;
       required -= usePurpleBonus;
+      if (usePurpleBonus > 0) plan.usedMasterAsWildcard = true;
 
       const usePurpleToken = Math.min(purpleTokens, required);
+      plan.spendTokens[Ball.master_ball] += usePurpleToken;
       purpleTokens -= usePurpleToken;
-      spent[5] += usePurpleToken;
       required -= usePurpleToken;
+      if (usePurpleToken > 0) plan.usedMasterAsWildcard = true;
+
+      if (required > 0) return null;
     }
   }
 
-  let purpleRequired = need[5];
+  let purpleRequired = need[Ball.master_ball];
   const usePurpleBonus = Math.min(purpleBonus, purpleRequired);
+  plan.spendBonuses[Ball.master_ball] += usePurpleBonus;
   purpleBonus -= usePurpleBonus;
   purpleRequired -= usePurpleBonus;
 
   if (purpleRequired > 0){
     const usePurpleToken = Math.min(purpleTokens, purpleRequired);
+    plan.spendTokens[Ball.master_ball] += usePurpleToken;
     purpleTokens -= usePurpleToken;
-    spent[5] += usePurpleToken;
+    purpleRequired -= usePurpleToken;
+    if (purpleRequired > 0) return null;
   }
 
-  p.tokens[5] = purpleTokens;
+  return plan;
+}
 
-  for (let i=0;i<spent.length;i++){
-    if (spent[i] > 0){
-      state.tokenPool[i] += spent[i];
+function canAfford(p, card){
+  return !!calculatePaymentPlan(p, card);
+}
+
+function payCost(p, card, plan){
+  const paymentPlan = plan || calculatePaymentPlan(p, card);
+  if (!paymentPlan) return;
+
+  paymentPlan.spendTokens.forEach((count, color) => {
+    if (count > 0){
+      p.tokens[color] -= count;
+      state.tokenPool[color] += count;
     }
-  }
+  });
 }
 
 function canAffordEvolution(p, card){
