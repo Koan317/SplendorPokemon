@@ -547,7 +547,6 @@ body {
     padding-right: 8px;
     scrollbar-width: thin;
     scrollbar-color: rgba(99, 102, 241, 0.55) rgba(148, 163, 184, 0.14);
-    scrollbar-gutter: stable both-edges;
 }
 
 .players-grid::-webkit-scrollbar {
@@ -633,8 +632,7 @@ body {
     grid-template-columns: repeat(auto-fit, minmax(var(--reserve-zone-width), 1fr));
     gap: 10px;
     justify-content: start;
-    align-items: center;
-    overflow: hidden;
+    align-items: start;
 }
 
 .zone {
