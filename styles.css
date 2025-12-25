@@ -425,8 +425,8 @@ body {
     right: -6px;
     background: rgba(15, 118, 110, 0.95);
     color: #ecfeff;
-    border-radius: 10px;
-    padding: 2px 6px;
+    border-radius: 12px;
+    padding: 2px 7px;
     font-size: 16px;
     border: 1px solid rgba(45, 212, 191, 0.5);
     box-shadow: 0 2px 6px rgba(0,0,0,0.3);
@@ -438,8 +438,8 @@ body {
     right: -4px;
     background: rgba(59, 130, 246, 0.9);
     color: #dbeafe;
-    border-radius: 10px;
-    padding: 2px 6px;
+    border-radius: 12px;
+    padding: 2px 7px;
     font-size: 16px;
     border: 1px solid rgba(125, 211, 252, 0.6);
     box-shadow: 0 2px 6px rgba(0,0,0,0.3);
