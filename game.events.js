@@ -18,6 +18,12 @@ if (el.btnAiInfo) el.btnAiInfo.addEventListener("click", () => {
   showModal(el.aiInfoModal);
 });
 
+if (el.btnCheat) el.btnCheat.addEventListener("click", () => {
+  ensureModalOverlay();
+  renderCheatTokenList();
+  showModal(el.cheatModal);
+});
+
 if (el.btnSave) el.btnSave.addEventListener("click", saveToLocal);
 if (el.btnLoad) el.btnLoad.addEventListener("click", loadFromLocal);
 
@@ -57,6 +63,7 @@ if (el.btnCancelPlayerCount) el.btnCancelPlayerCount.addEventListener("click", c
 if (el.btnCloseHandModal) el.btnCloseHandModal.addEventListener("click", closeModals);
 if (el.btnCloseCardDetailModal) el.btnCloseCardDetailModal.addEventListener("click", closeModals);
 if (el.btnCloseAiInfo) el.btnCloseAiInfo.addEventListener("click", closeModals);
+if (el.btnCloseCheat) el.btnCloseCheat.addEventListener("click", closeModals);
 if (el.btnConfirmTokenReturn) el.btnConfirmTokenReturn.addEventListener("click", confirmTokenReturn);
 if (el.btnConfirmMasterBallYes) el.btnConfirmMasterBallYes.addEventListener("click", () => resolveMasterBallConfirmation(true));
 if (el.btnConfirmMasterBallNo) el.btnConfirmMasterBallNo.addEventListener("click", () => resolveMasterBallConfirmation(false));

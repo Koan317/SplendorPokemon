@@ -852,6 +852,84 @@ function renderTokenPool(){
   }
 }
 
+const CHEAT_MAX_TOKEN_PER_COLOR = 30;
+
+function cheatCanIncrease(color){
+  const pool = state?.tokenPool?.[color] ?? 0;
+  return pool < CHEAT_MAX_TOKEN_PER_COLOR;
+}
+
+function cheatCanDecrease(color){
+  const pool = state?.tokenPool?.[color] ?? 0;
+  return pool > 0;
+}
+
+function adjustTokenPoolByCheat(color, delta){
+  if (!state?.tokenPool || color < 0 || color >= state.tokenPool.length) return;
+  const current = state.tokenPool[color] ?? 0;
+  const next = Math.max(0, Math.min(CHEAT_MAX_TOKEN_PER_COLOR, current + delta));
+  if (next === current) return;
+  state.tokenPool[color] = next;
+  renderTokenPool();
+  renderActionButtons();
+  renderCheatTokenList();
+}
+
+function renderCheatTokenList(){
+  if (!el.cheatTokenList) return;
+  el.cheatTokenList.innerHTML = "";
+  const tokenPool = state?.tokenPool || [];
+
+  BALL_KEYS.forEach((_, color) => {
+    const count = tokenPool[color] ?? 0;
+
+    const row = document.createElement("div");
+    row.className = "cheat-token" + (count <= 0 ? " empty" : "");
+
+    const info = document.createElement("div");
+    info.className = "cheat-token-info";
+
+    const img = document.createElement("img");
+    img.src = BALL_IMAGES[color];
+    img.alt = BALL_NAMES[color];
+    img.className = "cheat-token-image";
+    info.appendChild(img);
+
+    const name = document.createElement("div");
+    name.className = "cheat-token-name";
+    name.textContent = BALL_NAMES[color];
+    info.appendChild(name);
+
+    const controls = document.createElement("div");
+    controls.className = "cheat-token-controls";
+
+    const btnIncrease = document.createElement("button");
+    btnIncrease.type = "button";
+    btnIncrease.className = "btn ghost cheat-arrow";
+    btnIncrease.textContent = "▲";
+    btnIncrease.disabled = !cheatCanIncrease(color);
+    btnIncrease.addEventListener("click", () => adjustTokenPoolByCheat(color, +1));
+    controls.appendChild(btnIncrease);
+
+    const value = document.createElement("div");
+    value.className = "cheat-token-count";
+    value.textContent = String(count);
+    controls.appendChild(value);
+
+    const btnDecrease = document.createElement("button");
+    btnDecrease.type = "button";
+    btnDecrease.className = "btn ghost cheat-arrow";
+    btnDecrease.textContent = "▼";
+    btnDecrease.disabled = !cheatCanDecrease(color);
+    btnDecrease.addEventListener("click", () => adjustTokenPoolByCheat(color, -1));
+    controls.appendChild(btnDecrease);
+
+    row.appendChild(info);
+    row.appendChild(controls);
+    el.cheatTokenList.appendChild(row);
+  });
+}
+
 function renderMarket(){
   if (!el.market) return;
   el.market.innerHTML = "";

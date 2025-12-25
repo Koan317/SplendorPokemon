@@ -3,6 +3,7 @@ function renderAll(){
   ensurePerTurnDefaults();
   ensureSessionTimerTicking();
   renderTokenPool();
+  renderCheatTokenList();
   renderMarket();
   renderPlayers();
   renderErrorBanner();

@@ -13,6 +13,7 @@ const el = {
   btnLoad: $("#btnLoad"),
   btnResetStorage: $("#btnResetStorage"),
   btnAiInfo: $("#btnAiInfo"),
+  btnCheat: $("#btnCheat"),
 
   modalOverlay: $("#modalOverlay"),
   confirmNewGameModal: $("#confirmNewGameModal"),
@@ -52,4 +53,8 @@ const el = {
   actBuy: $("#actBuy"),
   actEvolve: $("#actEvolve"),
   actEndTurn: $("#actEndTurn"),
+
+  cheatModal: $("#cheatModal"),
+  cheatTokenList: $("#cheatTokenList"),
+  btnCloseCheat: $("#btnCloseCheat"),
 };
