@@ -14,7 +14,7 @@
     --reserve-zone-width: calc(var(--mini-card-w) * 3 + 24px);
     --hand-stack-offset: 18px;
     --token-d: clamp(72px, 9.6vw, 104px);
-    --token-mini-size: 52px;
+    --token-mini-size: 65px;
 }
 
 * {
@@ -421,26 +421,26 @@ body {
 
 .count-badge {
     position: absolute;
-    top: -4px;
+    top: -1px;
     right: -6px;
     background: rgba(15, 118, 110, 0.95);
     color: #ecfeff;
     border-radius: 10px;
     padding: 2px 6px;
-    font-size: 12px;
+    font-size: 16px;
     border: 1px solid rgba(45, 212, 191, 0.5);
     box-shadow: 0 2px 6px rgba(0,0,0,0.3);
 }
 
 .reward-badge {
     position: absolute;
-    bottom: -4px;
+    bottom: -1px;
     right: -4px;
     background: rgba(59, 130, 246, 0.9);
     color: #dbeafe;
     border-radius: 10px;
     padding: 2px 6px;
-    font-size: 11px;
+    font-size: 16px;
     border: 1px solid rgba(125, 211, 252, 0.6);
     box-shadow: 0 2px 6px rgba(0,0,0,0.3);
 }
@@ -630,7 +630,7 @@ body {
 .token-zone {
     height: auto;
     min-height: calc(var(--token-mini-size) * 2 + 10px);
-    --token-mini-size: 60px;
+    /*--token-mini-size: 60px;*/
 }
 
 .zone-items {
@@ -743,7 +743,7 @@ body {
         display: block;
     }
 
-    .token-mini .count-badge {
+/*.token-mini .count-badge {
         position: absolute;
         top: -4px;
         right: -4px;
@@ -754,7 +754,7 @@ body {
 
     .token-mini .reward-badge {
         font-size: 12px;
-    }
+    }*/
 
 .full-card {
     width: var(--card-w);
