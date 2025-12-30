@@ -1062,6 +1062,7 @@ function renderPlayers(){
 function renderHandZone(cards, playerIndex){
   const zone = document.createElement("div");
   zone.className = "zone hand-zone";
+  const isCurrentPlayer = playerIndex === state.currentPlayerIndex;
 
   const items = document.createElement("div");
   items.className = "zone-items hand-items";
@@ -1070,7 +1071,7 @@ function renderHandZone(cards, playerIndex){
   const offset = 16;
 
   displayCards.forEach((card, idx) => {
-    const highlight = playerIndex === state.currentPlayerIndex && canCurrentPlayerEvolveCard(card);
+    const highlight = isCurrentPlayer && canCurrentPlayerEvolveCard(card);
     const mini = renderMiniCard(card, false, highlight ? "glow-silver" : "");
     mini.style.left = `${idx * offset}px`;
     mini.style.zIndex = String(1 + idx);
@@ -1094,6 +1095,7 @@ function renderHandZone(cards, playerIndex){
 function renderReserveZone(cards, playerIndex){
   const zone = document.createElement("div");
   zone.className = "zone reserve-zone";
+  const isCurrentPlayer = playerIndex === state.currentPlayerIndex;
 
   const items = document.createElement("div");
   items.className = "zone-items reserve-items";
@@ -1102,9 +1104,7 @@ function renderReserveZone(cards, playerIndex){
     const selected = ui.selectedReservedCard &&
       ui.selectedReservedCard.cardId === card.id &&
       ui.selectedReservedCard.playerIndex === playerIndex;
-    const highlight = playerIndex === state.currentPlayerIndex &&
-      canCurrentPlayerBuyReservedCard(card, playerIndex) &&
-      !selected;
+    const highlight = isCurrentPlayer && canCurrentPlayerBuyReservedCard(card, playerIndex) && !selected;
 
     const mini = renderMiniCard(card, selected, highlight ? "glow-gold" : "");
     mini.addEventListener("click", (ev) => {
@@ -1210,6 +1210,7 @@ function renderHandModal(playerIndex = ui.handPreviewPlayerIndex){
   for (const color of order){
     const list = groups[color] || [];
     if (!list.length) continue;
+    const isCurrentPlayer = playerIndex === state.currentPlayerIndex;
 
     const section = document.createElement("div");
     section.className = "hand-group";
@@ -1222,7 +1223,7 @@ function renderHandModal(playerIndex = ui.handPreviewPlayerIndex){
     const grid = document.createElement("div");
     grid.className = "hand-group-grid";
     list.forEach(card => {
-      const highlight = playerIndex === state.currentPlayerIndex && canCurrentPlayerEvolveCard(card) ? "glow-silver" : "";
+      const highlight = isCurrentPlayer && canCurrentPlayerEvolveCard(card) ? "glow-silver" : "";
       grid.appendChild(renderCardStack(card, { highlightClass: highlight }));
     });
 
