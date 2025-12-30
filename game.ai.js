@@ -946,7 +946,12 @@ function renderEmptySlot(isGhost){
 
 function renderMarketCard(card){
   const div = document.createElement("div");
-  div.className = "market-card" + (ui.selectedMarketCardId === card.id ? " selected" : "");
+  const selected = ui.selectedMarketCardId === card.id;
+  const buyable = canCurrentPlayerBuyCardNow(card);
+  const classes = ["market-card"];
+  if (selected) classes.push("selected");
+  else if (buyable) classes.push("glow-gold");
+  div.className = classes.join(" ");
   div.dataset.cardId = card.id;
 
   const visual = document.createElement("div");
@@ -970,8 +975,8 @@ function renderMarketCard(card){
   return div;
 }
 
-function renderMiniCard(card, selected){
-  const mini = renderCardVisual(card, "mini-card");
+function renderMiniCard(card, selected, extraClass = ""){
+  const mini = renderCardVisual(card, "mini-card" + (extraClass ? ` ${extraClass}` : ""));
   mini.dataset.cardId = card.id;
   if (selected) mini.classList.add("selected");
   return mini;
@@ -1057,6 +1062,7 @@ function renderPlayers(){
 function renderHandZone(cards, playerIndex){
   const zone = document.createElement("div");
   zone.className = "zone hand-zone";
+  const isCurrentPlayer = playerIndex === state.currentPlayerIndex;
 
   const items = document.createElement("div");
   items.className = "zone-items hand-items";
@@ -1065,7 +1071,8 @@ function renderHandZone(cards, playerIndex){
   const offset = 16;
 
   displayCards.forEach((card, idx) => {
-    const mini = renderMiniCard(card, false);
+    const highlight = isCurrentPlayer && canCurrentPlayerEvolveCard(card);
+    const mini = renderMiniCard(card, false, highlight ? "glow-silver" : "");
     mini.style.left = `${idx * offset}px`;
     mini.style.zIndex = String(1 + idx);
     items.appendChild(mini);
@@ -1088,6 +1095,7 @@ function renderHandZone(cards, playerIndex){
 function renderReserveZone(cards, playerIndex){
   const zone = document.createElement("div");
   zone.className = "zone reserve-zone";
+  const isCurrentPlayer = playerIndex === state.currentPlayerIndex;
 
   const items = document.createElement("div");
   items.className = "zone-items reserve-items";
@@ -1096,8 +1104,9 @@ function renderReserveZone(cards, playerIndex){
     const selected = ui.selectedReservedCard &&
       ui.selectedReservedCard.cardId === card.id &&
       ui.selectedReservedCard.playerIndex === playerIndex;
+    const highlight = isCurrentPlayer && canCurrentPlayerBuyReservedCard(card, playerIndex) && !selected;
 
-    const mini = renderMiniCard(card, selected);
+    const mini = renderMiniCard(card, selected, highlight ? "glow-gold" : "");
     mini.addEventListener("click", (ev) => {
       ev.stopPropagation();
       ui.selectedMarketCardId = null;
@@ -1151,15 +1160,15 @@ function renderTokenZone(tokens, rewardBonuses = []){
   return zone;
 }
 
-function renderFullCard(card){
-  return renderCardVisual(card, "full-card");
+function renderFullCard(card, extraClass = ""){
+  return renderCardVisual(card, "full-card" + (extraClass ? ` ${extraClass}` : ""));
 }
 
-function renderCardStack(card){
+function renderCardStack(card, { highlightClass = "" } = {}){
   const stack = document.createElement("div");
   stack.className = "card-stack";
 
-  const main = renderFullCard(card);
+  const main = renderFullCard(card, highlightClass);
   stack.appendChild(main);
 
   const underCards = getStackedCards(card);
@@ -1201,6 +1210,7 @@ function renderHandModal(playerIndex = ui.handPreviewPlayerIndex){
   for (const color of order){
     const list = groups[color] || [];
     if (!list.length) continue;
+    const isCurrentPlayer = playerIndex === state.currentPlayerIndex;
 
     const section = document.createElement("div");
     section.className = "hand-group";
@@ -1213,7 +1223,8 @@ function renderHandModal(playerIndex = ui.handPreviewPlayerIndex){
     const grid = document.createElement("div");
     grid.className = "hand-group-grid";
     list.forEach(card => {
-      grid.appendChild(renderCardStack(card));
+      const highlight = isCurrentPlayer && canCurrentPlayerEvolveCard(card) ? "glow-silver" : "";
+      grid.appendChild(renderCardStack(card, { highlightClass: highlight }));
     });
 
     section.appendChild(grid);
